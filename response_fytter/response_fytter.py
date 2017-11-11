@@ -97,7 +97,8 @@ class ResponseFytter(object):
         alphas : np.array
             the alpha/lambda values to try out in the CV ridge regression
 
-        """        if alphas is None:
+        """        
+        if alphas is None:
             alphas = np.logspace(7, 0, 20)
         self.rcv = linear_model.RidgeCV(alphas=alphas, 
                 fit_intercept=False, 
