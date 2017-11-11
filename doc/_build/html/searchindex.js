@@ -1,0 +1,1 @@
+Search.setIndex({docnames:["ResponseFytter","index"],envversion:53,filenames:["ResponseFytter.rst","index.rst"],objects:{},objnames:{},objtypes:{},terms:{index:1,modul:1,page:1,search:1},titles:["API","Welcome to response_fytter\u2019s documentation!"],titleterms:{"class":0,api:0,document:1,indic:1,response_fytt:1,tabl:1,welcom:1}})
