@@ -2,12 +2,12 @@
 
 from event_type import EventType
 
-class ResponseFitter(object):
-    """ResponseFitter takes an input signal and performs deconvolution on it. 
+class ResponseFytter(object):
+    """ResponseFytter takes an input signal and performs deconvolution on it. 
     To do this, it requires event times, and possible covariates.
-    ResponseFitter can, for each event type, use different basis function sets."""
+    ResponseFytter can, for each event type, use different basis function sets."""
     def __init__(self, input_signal, input_sample_frequency, **kwargs):
-        """ Initialize a ResponseFitter object.
+        """ Initialize a ResponseFytter object.
 
         Parameters
         ----------
@@ -20,9 +20,9 @@ class ResponseFitter(object):
             frequency in Hz at which input data are sampled
 
         **kwargs : dict
-            keyward arguments to be internalized by the ResponseFitter object
+            keyward arguments to be internalized by the ResponseFytter object
         """        
-        super(ResponseFitter, self).__init__()
+        super(ResponseFytter, self).__init__()
         self.__dict__.update(kwargs)
 
         if len(self.input_signal.shape) == 1:
