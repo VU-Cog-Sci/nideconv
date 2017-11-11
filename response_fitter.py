@@ -7,6 +7,21 @@ class ResponseFitter(object):
     To do this, it requires event times, and possible covariates.
     ResponseFitter can, for each event type, use different basis function sets."""
     def __init__(self, input_signal, input_sample_frequency, **kwargs):
+        """ Initialize a ResponseFitter object.
+
+        Parameters
+        ----------
+        input_signal : numpy array, dimensions preferably (X, n)
+            input data, of X timeseries of n timepoints 
+            sampled at the frequency at which we would 
+            like to conduct this analysis
+
+        input_sample_frequency : float
+            frequency in Hz at which input data are sampled
+
+        **kwargs : dict
+            keyward arguments to be internalized by the ResponseFitter object
+        """        
         super(ResponseFitter, self).__init__()
         self.__dict__.update(kwargs)
 
@@ -23,6 +38,21 @@ class ResponseFitter(object):
         self.event_types = {}
 
     def create_event_design_matrix(self, event_name, **kwargs):
+        """
+        create design matrix for a given event type.
+
+        Parameters
+        ----------
+        event_name : string
+            Name of the event type, used as key to lookup this event type's
+            characteristics
+
+        **kwargs : dict
+            keyward arguments to be internalized by the generated and 
+            internalized EventType object. Needs to consist of the 
+            necessary arguments to create an EventType object.
+
+        """
         ev = EventType(**kwargs)
         ev.create_design_matrix()
 
@@ -34,8 +64,20 @@ class ResponseFitter(object):
                         })
         self.event_types.update({event_name, ev})
 
-    def regress(self, type):
-        """"""
+    def regress(self, type='ols'):
+        """
+        regress a created design matrix on the input_data, creating internal
+        variables betas, residuals, rank and s. 
+        The beta values are then injected into the event_type objects the
+        response_fitter contains. 
+
+        Parameters
+        ----------
+        type : string, optional
+            the type of fit to be done. Options are 'ols' for np.linalg.lstsq,
+            'ridge' for CV ridge regression.
+
+        """
         if type == 'ols':
             self.betas, self.residuals, self.rank, self.s = np.linalg.lstsq(self.X.T, self.input_signal)
 
@@ -44,15 +86,18 @@ class ResponseFitter(object):
                 self.betas[self.regressor_lookup_table[ev]]
 
     def ridge_regress(self, cv = 20, alphas = None ):
-        """perform k-folds cross-validated ridge regression on the design_matrix. To be used when the design matrix contains very collinear regressors. For cross-validation and ridge fitting, we use sklearn's RidgeCV functionality. Note: intercept is not fit, and data are not prenormalized. 
-
-            :param cv: cross-validated folds, inherits RidgeCV cv argument's functionality.
-            :type cv: int, standard = 20
-            :param alphas: values of penalization parameter to be traversed by the procedure, inherits RidgeCV cv argument's functionality. Standard value, when parameter is None, is np.logspace(7, 0, 20)
-            :type alphas: numpy array, from >0 to 1. 
-            :returns: instance variables 'betas' (nr_betas x nr_signals) and 'residuals' (nr_signals x nr_samples) are created.
         """
-        if alphas is None:
+        run CV ridge regression instead of ols fit. Uses sklearn's RidgeCV class
+
+        Parameters
+        ----------
+        cv : int
+            number of cross-validation folds
+
+        alphas : np.array
+            the alpha/lambda values to try out in the CV ridge regression
+
+        """        if alphas is None:
             alphas = np.logspace(7, 0, 20)
         self.rcv = linear_model.RidgeCV(alphas=alphas, 
                 fit_intercept=False, 
@@ -66,12 +111,15 @@ class ResponseFitter(object):
 
 
     def predict_from_design_matrix(self, Xt):
-        """predict_from_design_matrix predicts signals given a design matrix.
+        """
+        predict a signal given a design matrix. Requires regression to have
+        been run.
 
-            :param design_matrix: design matrix from which to predict a signal.
-            :type design_matrix: numpy array, (nr_samples x betas.shape)
-            :returns: predicted signal(s) 
-            :rtype: numpy array (nr_signals x nr_samples)
+        Parameters
+        ----------
+        Xt : np.array, (nr_regressors, timepoints)
+            the design matrix for which to predict data.
+
         """
         # check if we have already run the regression - which is necessary
         assert hasattr(self, 'betas'), 'no betas found, please run regression before prediction'
@@ -85,7 +133,11 @@ class ResponseFitter(object):
 
 
     def rsq(self):
-        """"""
+        """
+        calculate the rsq of a given fit. 
+        calls predict_from_design_matrix to predict the signal that has been fit
+        """
+
 
         assert hasattr(self, 'betas'), \
                         'no betas found, please run regression before rsq'
