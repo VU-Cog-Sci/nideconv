@@ -1,14 +1,17 @@
 import unittest
+import response_fytter
 
 class ResponseFytterTest(unittest.TestCase):
     """Tests for ResponseFytter"""
-    def setUp(self, 
+    def create_signals(self, 
         signal_sample_frequency=4, 
         event_1_gain=1, 
         event_2_gain=1,
         event_1_sd=0,
         event_2_sd=0):
-    
+        """creates signals to be used for the deconvolution of 
+        2 specific impulse response shapes from the signals.
+        """
         # signal parameters
         signal_sample_frequency = 4
         event_1_gain, event_2_gain = 1, 1# 2.3, 0.85
@@ -20,15 +23,15 @@ class ResponseFytterTest(unittest.TestCase):
         # create some exponentially distributed random ISI events (Dale, 1999) of which we will create and deconvolve responses. 
         period_durs = np.random.gamma(4.0,1.5,size = 1000)
         events = period_durs.cumsum()
-        events_1, events_2 = events[0::2], events[1::2]
+        self.events_1, self.events_2 = events[0::2], events[1::2]
 
-        durations_1, durations_2 = np.ones(events_1.shape[0])/deconv_sample_frequency, \
-                                    np.ones(events_2.shape[0])/deconv_sample_frequency
+        self.durations_1, self.durations_2 = np.ones(self.events_1.shape[0])/deconv_sample_frequency, \
+                                    np.ones(self.events_2.shape[0])/deconv_sample_frequency
 
         # these events are scaled with their own underlying covariate. 
         # for instance, you could have a model-based variable that scales the signal on a per-trial basis. 
-        events_gains_1 = event_1_gain * np.ones(len(events_1)) + np.random.randn(len(events_1)) * event_1_sd
-        events_gains_2 = event_2_gain * np.ones(len(events_2)) + np.random.randn(len(events_2)) * event_2_sd
+        self.events_gains_1 = event_1_gain * np.ones(len(self.events_1)) + np.random.randn(len(events_1)) * event_1_sd
+        self.events_gains_2 = event_2_gain * np.ones(len(self.events_2)) + np.random.randn(len(events_2)) * event_2_sd
 
         times = np.arange(0,events.max()+45.0,1.0/signal_sample_frequency)
 
@@ -55,27 +58,40 @@ class ResponseFytterTest(unittest.TestCase):
         # input_data = (input_data - np.mean(input_data)) / input_data.std()
         self.input_data += np.random.randn(input_data.shape[0]) * noise_gain
 
+    def test_vanilla_deconvolve(self,
+                    signal_sample_frequency=4,
+                    event_1_gain=1,
+                    event_2_gain=1):
+        self.create_signals(signal_sample_frequency=signal_sample_frequency,
+                            event_1_gain=event_1_gain,
+                            event_2_gain=event_2_gain,
+                            event_1_sd=0,
+                            event_2_sd=0)
+
+        rfy = response_fytter.ResponseFytter(
+            input_signal=input_signal, 
+            input_sample_frequency=signal_sample_frequency)
+
+        # first event type
+        rfy.create_event_design_matrix(
+            event_name='1',
+            fitter=self,
+            onset_times=self.events_1,
+            durations=self.durations_1
+            )
+        # second
+        rfy.create_event_design_matrix(
+            event_name='2',
+            fitter=self,
+            onset_times=self.events_2,
+            durations=self.durations_2
+            )
+
+        rfy.regress()
 
 
-    def tearDown(self):
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        self.assertAlmostEqual(rfy.event_types['1'].timecourses['int'], event_1_gain)
+        self.assertAlmostEqual(rfy.event_types['2'].timecourses['int'], event_2_gain)
 
 
 if __name__ == '__main__':

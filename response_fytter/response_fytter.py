@@ -81,9 +81,11 @@ class ResponseFytter(object):
         if type == 'ols':
             self.betas, self.residuals, self.rank, self.s = np.linalg.lstsq(self.X.T, self.input_signal)
 
+        # insert betas into event types for conversion
         for ev in self.event_types.iteritems():
             self.event_types[ev].betas = \
                 self.betas[self.regressor_lookup_table[ev]]
+            self.event_types[ev].betas_to_timecourses()
 
     def ridge_regress(self, cv = 20, alphas = None ):
         """
@@ -107,9 +109,6 @@ class ResponseFytter(object):
 
         self.betas = self.rcv.coef_.T
         self.residuals = self.resampled_signal - self.rcv.predict(self.design_matrix.T)
-
-        self.logger.debug('performed ridge regression on %s design_matrix and %s signal, resulting alpha value is %f' % (str(self.design_matrix.shape), str(self.resampled_signal.shape), self.rcv.alpha_))
-
 
     def predict_from_design_matrix(self, Xt):
         """

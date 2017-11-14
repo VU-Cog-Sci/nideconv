@@ -176,9 +176,8 @@ class EventType(object):
         """        
         assert hasattr(self, 'betas'), 'no betas found, please run regression before rsq'
 
-        self.covariate_timecourses = {}
+        self.timecourses = {}
         for key in self.covariates.iterkeys():
             cov_betas = self.betas[self.covariate_indices[key]]
-            self.covariate_timecourses.update({key:
-                                                np.dot(cov_betas, self.L)})
+            self.timecourses.update({key: np.dot(cov_betas, self.L)})
 
