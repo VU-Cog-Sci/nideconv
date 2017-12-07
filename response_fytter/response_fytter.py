@@ -5,7 +5,8 @@ from event_type import EventType
 class ResponseFytter(object):
     """ResponseFytter takes an input signal and performs deconvolution on it. 
     To do this, it requires event times, and possible covariates.
-    ResponseFytter can, for each event type, use different basis function sets."""
+    ResponseFytter can, for each event type, use different basis function sets,
+    see EventType."""
     def __init__(self, input_signal, input_sample_frequency, **kwargs):
         """ Initialize a ResponseFytter object.
 
@@ -50,7 +51,8 @@ class ResponseFytter(object):
         **kwargs : dict
             keyward arguments to be internalized by the generated and 
             internalized EventType object. Needs to consist of the 
-            necessary arguments to create an EventType object.
+            necessary arguments to create an EventType object, 
+            see EventType constructor method.
 
         """
         ev = EventType(**kwargs)
@@ -62,9 +64,9 @@ class ResponseFytter(object):
                             self.X.shape[0]-ev.X.shape[0], 
                             ev.X.shape[0])
                         })
-        self.event_types.update({event_name, ev})
+        self.event_types.update({event_name: ev})
 
-    def regress(self, type='ols'):
+    def regress(self, type='ols', cv=20, alphas=None):
         """
         regress a created design matrix on the input_data, creating internal
         variables betas, residuals, rank and s. 
@@ -79,7 +81,10 @@ class ResponseFytter(object):
 
         """
         if type == 'ols':
-            self.betas, self.residuals, self.rank, self.s = np.linalg.lstsq(self.X.T, self.input_signal)
+            self.betas, self.residuals, self.rank, self.s = \
+                                np.linalg.lstsq(self.X.T, self.input_signal)
+        elif type == 'ridge':   # betas and residuals are internalized by ridge_regress
+            self.ridge_regress(cv=cv, alphas=alphas)
 
         # insert betas into event types for conversion
         for ev in self.event_types.iteritems():
@@ -87,7 +92,7 @@ class ResponseFytter(object):
                 self.betas[self.regressor_lookup_table[ev]]
             self.event_types[ev].betas_to_timecourses()
 
-    def ridge_regress(self, cv = 20, alphas = None ):
+    def ridge_regress(self, cv=20, alphas=None):
         """
         run CV ridge regression instead of ols fit. Uses sklearn's RidgeCV class
 
@@ -127,7 +132,7 @@ class ResponseFytter(object):
                     """designmatrix needs to have the same number of regressors 
                     as the betas already calculated"""
 
-        prediction = np.dot(self.betas.astype(np.float32).T, Xt.astype(np.float32))
+        prediction = np.dot(self.betas.T, Xt)
 
         return prediction
 

@@ -36,7 +36,10 @@ def _create_legendre_basis(timepoints, nr_regressors):
 
 
 class EventType(object):
-    """docstring for EventType"""
+    """EventType is a class that encapsulates the creation and conversion
+    of design matrices and resulting beta weights for specific event types. 
+    Design matrices for an event type can be built up of different basis sets,
+    and one can choose the time interval over which to fit the response. """
     def __init__(self, 
                 fitter, 
                 basis_set='fir', 
@@ -50,7 +53,7 @@ class EventType(object):
         Parameters
         ----------
         fitter : ResponseFitter object
-            the response fitter object needed to feed the EventType with its
+            the response fitter object needed to feed the EventType its
             parameters.
 
         basis_set : string ['fir', 'fourier', 'legendre']
