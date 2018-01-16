@@ -1,6 +1,5 @@
-
-
-from event_type import EventType
+from .event_type import EventType
+import numpy as np
 
 class ResponseFytter(object):
     """ResponseFytter takes an input signal and performs deconvolution on it. 
@@ -26,6 +25,9 @@ class ResponseFytter(object):
         super(ResponseFytter, self).__init__()
         self.__dict__.update(kwargs)
 
+        self.input_signal = input_signal
+        self.input_sample_frequency = input_sample_frequency
+
         if len(self.input_signal.shape) == 1:
             self.input_signal = self.input_signal[np.newaxis, :]
 
@@ -34,8 +36,8 @@ class ResponseFytter(object):
                                                 self.input_signal.shape[1], 
                                                 self.input_sample_duration)
 
-        self.X = np.ones((1,self.input_signal.shape[1]))
-        self.regressor_lookup_table = {'int':[0]}
+        self.X = np.ones((self.input_signal.shape[0], 1))
+        self.regressor_lookup_table = {'intercept':[0]}
         self.event_types = {}
 
     def create_event_design_matrix(self, event_name, **kwargs):
@@ -55,14 +57,15 @@ class ResponseFytter(object):
             see EventType constructor method.
 
         """
-        ev = EventType(**kwargs)
+        ev = EventType(fitter=self, **kwargs)
         ev.create_design_matrix()
 
-        self.X = np.hstack(self.X, ev.X)
+
+        self.X = np.hstack((self.X, ev.X))
         self.regressor_lookup_table.update({
             event_name: np.arange(
-                            self.X.shape[0]-ev.X.shape[0], 
-                            ev.X.shape[0])
+                            self.X.shape[1]-ev.X.shape[1], 
+                            self.X.shape[1])
                         })
         self.event_types.update({event_name: ev})
 
@@ -82,12 +85,12 @@ class ResponseFytter(object):
         """
         if type == 'ols':
             self.betas, self.residuals, self.rank, self.s = \
-                                np.linalg.lstsq(self.X.T, self.input_signal)
+                                np.linalg.lstsq(self.X, self.input_signal)
         elif type == 'ridge':   # betas and residuals are internalized by ridge_regress
             self.ridge_regress(cv=cv, alphas=alphas)
 
         # insert betas into event types for conversion
-        for ev in self.event_types.iteritems():
+        for ev in self.event_types:
             self.event_types[ev].betas = \
                 self.betas[self.regressor_lookup_table[ev]]
             self.event_types[ev].betas_to_timecourses()
