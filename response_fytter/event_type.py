@@ -7,6 +7,7 @@ response
 
 import numpy as np
 import scipy as sp
+import pandas as pd
 
 def _create_fir_basis(timepoints, n_regressors):
     """"""
@@ -42,6 +43,7 @@ class EventType(object):
     and one can choose the time interval over which to fit the response. """
     def __init__(self, 
                 fitter, 
+                name, 
                 basis_set='fir', 
                 interval=[0,10], 
                 n_regressors=0, 
@@ -87,18 +89,20 @@ class EventType(object):
         super(EventType, self).__init__()
 
         self.fitter = fitter
+        self.name = name
         self.basis_set = basis_set
         self.interval = interval
         self.n_regressors = n_regressors
         self.onset_times = onset_times
         self.durations = durations
-        self.covariates = covariates
 
         self.timepoints = np.arange(self.interval[0], self.interval[1], 
                                     self.fitter.input_sample_duration)
 
-        if self.covariates == None: # single dict of one-valued covariates
-            self.covariates = {'int': np.ones(self.onset_times.shape)}
+        if covariates is None: # single dict of one-valued covariates
+            self.covariates = pd.DataFrame({'intercept': np.ones(self.onset_times.shape)})
+        else:
+            self.covariates = pd.DataFrame(covariates)
 
         # only for fir, the nr of regressors is dictated by the interval and sample frequency
         if basis_set == 'fir':
@@ -111,13 +115,17 @@ class EventType(object):
 
         if self.basis_set == 'fir':
             self.L = _create_fir_basis(self.timepoints, self.n_regressors)
+            self.regressor_labels = ['fir_%.3fs' % tp for tp in self.timepoints]
         elif self.basis_set == 'fourier':
             self.L = _create_fourier_basis(self.timepoints, self.n_regressors)
+            self.regressor_labels = ['fourier_intercept']
+            self.regressor_labels += ['fourier_sin_%d_period' % period for period in np.arange(1, self.n_regressors/2)]
+            self.regressor_labels += ['fourier_cos_%d_period' % period for period in np.arange(1, self.n_regressors/2)]
+
         elif self.basis_set == 'legendre':
             self.L = _create_legendre_basis(self.timepoints, self.n_regressors)
+            self.regressor_labels = ['legendre_%d' % poly for poly in np.arange(1, self.n_regressors + 1)]
 
-        # create empty design matrix
-        self.X = np.zeros((self.fitter.input_signal.shape[0], self.n_regressors * len(self.covariates)))
 
         # perhaps for covariance matrix fitting, later:
         self.C = self.C_I = np.eye(self.L.shape[0])
@@ -146,7 +154,7 @@ class EventType(object):
         mean_dur = self.durations.mean() * self.fitter.input_sample_frequency # check this
 
         if covariate is None:
-            covariate = np.ones(self.onset_times.shape)
+            covariate = self.covariates['intercept']
         else:
             covariate = self.covariates[covariate]
 
@@ -163,13 +171,19 @@ class EventType(object):
         iterating over covariates. 
         
         """
-        self.covariate_indices = {}
-        for i,key in enumerate(self.covariates):
-            event_timepoints = self.event_timecourse(covariate=key)
-            for r in range(self.n_regressors):
-                self.X[:, i * self.n_regressors + r] = \
-                    sp.signal.fftconvolve(event_timepoints, self.L[r], 'same') # [:input_data.shape[0]]
-            self.covariate_indices.update({key: np.arange(i * self.n_regressors, (i+1) * self.n_regressors)})
+
+        # create empty design matrix
+        self.X = np.zeros((self.fitter.input_signal.shape[0], self.n_regressors *self.covariates.shape[1] ))
+        columns = pd.MultiIndex.from_product(([self.name], self.covariates.columns, self.regressor_labels))
+        self.X = pd.DataFrame(self.X, columns=columns, index=self.fitter.input_signal_time_points)
+        self.X.index.rename('t', inplace=True)
+        
+        for covariate in self.covariates.columns:
+            event_timepoints = self.event_timecourse(covariate=covariate)
+
+            for r, regressor in enumerate(self.regressor_labels):
+                self.X[self.name, covariate, regressor] = sp.signal.fftconvolve(event_timepoints, self.L[r], 'same') # [:input_data.shape[0]]
+
 
     def betas_to_timecourses(self):
         """

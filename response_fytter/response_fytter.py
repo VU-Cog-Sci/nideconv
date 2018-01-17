@@ -1,5 +1,6 @@
 from .event_type import EventType
 import numpy as np
+import pandas as pd
 
 class ResponseFytter(object):
     """ResponseFytter takes an input signal and performs deconvolution on it. 
@@ -25,20 +26,20 @@ class ResponseFytter(object):
         super(ResponseFytter, self).__init__()
         self.__dict__.update(kwargs)
 
-        self.input_signal = input_signal
         self.input_sample_frequency = input_sample_frequency
 
-        if len(self.input_signal.shape) == 1:
-            self.input_signal = self.input_signal[np.newaxis, :]
-
         self.input_sample_duration = 1.0/self.input_sample_frequency
+
         self.input_signal_time_points = np.arange(0, 
-                                                self.input_signal.shape[1], 
+                                                input_signal.shape[0] * self.input_sample_duration, 
                                                 self.input_sample_duration)
 
-        self.X = np.ones((self.input_signal.shape[0], 1))
-        self.regressor_lookup_table = {'intercept':[0]}
-        self.event_types = {}
+        self.input_signal = pd.DataFrame(input_signal, index=self.input_signal_time_points)
+
+        self.X = pd.DataFrame({('general', 'intercept', 0):np.ones((self.input_signal.shape[0]))},
+                              index=self.input_signal_time_points)
+        self.X.index.rename('t', inplace=True)
+
 
     def create_event_design_matrix(self, event_name, **kwargs):
         """
@@ -57,17 +58,10 @@ class ResponseFytter(object):
             see EventType constructor method.
 
         """
-        ev = EventType(fitter=self, **kwargs)
+        ev = EventType(fitter=self, name=event_name, **kwargs)
         ev.create_design_matrix()
 
-
-        self.X = np.hstack((self.X, ev.X))
-        self.regressor_lookup_table.update({
-            event_name: np.arange(
-                            self.X.shape[1]-ev.X.shape[1], 
-                            self.X.shape[1])
-                        })
-        self.event_types.update({event_name: ev})
+        self.X = pd.concat((self.X, ev.X), 1)
 
     def regress(self, type='ols', cv=20, alphas=None):
         """
@@ -89,11 +83,7 @@ class ResponseFytter(object):
         elif type == 'ridge':   # betas and residuals are internalized by ridge_regress
             self.ridge_regress(cv=cv, alphas=alphas)
 
-        # insert betas into event types for conversion
-        for ev in self.event_types:
-            self.event_types[ev].betas = \
-                self.betas[self.regressor_lookup_table[ev]]
-            self.event_types[ev].betas_to_timecourses()
+        self.betas = pd.Series(self.betas.ravel(), index=self.X.columns)
 
     def ridge_regress(self, cv=20, alphas=None):
         """
@@ -161,4 +151,4 @@ class ResponseFytter(object):
                                 np.sum(valid_signal.squeeze()**2, axis = -1)
         return np.squeeze(self.rsq)
 
-
+    #def get_timecourses
