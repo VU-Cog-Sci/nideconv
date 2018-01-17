@@ -34,16 +34,55 @@ def _create_legendre_basis(timepoints, n_regressors):
 
     return L_legendre
 
+class Regressor(object):
+
+    def __init__(self,
+                 name,
+                 fitter):
+
+        self.name = name
+        self.fitter= fitter
 
 
-class EventType(object):
-    """EventType is a class that encapsulates the creation and conversion
+    def create_design_matrix():
+        pass
+
+class Confound(Regressor):
+
+    def __init__(self, name, fitter, confounds):
+        
+        super(Confound, self).__init__(name, fitter)
+
+        if confounds.ndim == 1:
+            self.confounds = confounds[:, np.newaxis]
+        else:
+            self.confounds = confounds
+
+        self.confounds = pd.DataFrame(self.confounds)
+
+    def create_design_matrix(self):
+        self.X = self.confounds
+        self.X.columns = pd.MultiIndex.from_product([['confounds'], [self.name], self.X.columns])
+        self.X.set_index(self.fitter.input_signal_time_points, inplace=True)
+        self.X.index.rename('t', inplace=True)
+
+class Intercept(Confound):
+
+    def __init__(self,
+                 name,
+                 fitter):
+        confound = pd.DataFrame(np.ones(fitter.input_signal.shape[0]), columns=['intercept'])
+        super(Intercept, self).__init__(name, fitter, confound)
+
+
+class Event(Regressor):
+    """Event is a class that encapsulates the creation and conversion
     of design matrices and resulting beta weights for specific event types. 
     Design matrices for an event type can be built up of different basis sets,
     and one can choose the time interval over which to fit the response. """
     def __init__(self, 
-                fitter, 
                 name, 
+                fitter,
                 basis_set='fir', 
                 interval=[0,10], 
                 n_regressors=0, 
@@ -55,7 +94,7 @@ class EventType(object):
         Parameters
         ----------
         fitter : ResponseFitter object
-            the response fitter object needed to feed the EventType its
+            the response fitter object needed to feed the Event its
             parameters.
 
         basis_set : string ['fir', 'fourier', 'legendre']
@@ -86,15 +125,17 @@ class EventType(object):
             are the covariate values of each of the events in onset_times. 
 
         """        
-        super(EventType, self).__init__()
+        super(Event, self).__init__(name, fitter)
 
-        self.fitter = fitter
-        self.name = name
         self.basis_set = basis_set
         self.interval = interval
         self.n_regressors = n_regressors
         self.onset_times = onset_times
-        self.durations = durations
+
+        if durations is None:
+            self.durations = np.ones_like(self.onset_times) * self.fitter.input_sample_duration
+        else:
+            self.durations = durations
 
         self.timepoints = np.arange(self.interval[0], self.interval[1], 
                                     self.fitter.input_sample_duration)
@@ -185,7 +226,7 @@ class EventType(object):
                 self.X[self.name, covariate, regressor] = sp.signal.fftconvolve(event_timepoints, self.L[r], 'same') # [:input_data.shape[0]]
 
 
-    def betas_to_timecourses(self):
+    def get_timecourses(self):
         """
         takes betas, given from response_fitter object, and restructures the 
         beta weights to the interval that we're trying to fit, using the L
@@ -194,8 +235,12 @@ class EventType(object):
         """        
         assert hasattr(self, 'betas'), 'no betas found, please run regression before rsq'
 
-        self.timecourses = {}
-        for key in self.covariates:
-            cov_betas = self.betas[self.covariate_indices[key]]
-            self.timecourses.update({key: np.dot(cov_betas.T, self.L).ravel()})
+        x = self.betas.to_frame().reset_index().rename(columns={0:'beta'})
+
+        timecourses = x.groupby('covariate').beta.apply(lambda beta: pd.Series(beta.dot(self.L), index=self.timepoints)).reset_index()
+        timecourses.columns = ['covariate', 't', 'signal']
+
+        return timecourses
+
+
 
