@@ -181,7 +181,7 @@ class Event(Regressor):
         ----------
         covariate : string, optional
             Name of the covariate that will be used in the regression. 
-            Is set to ones if not provided.
+            Is set to ones if not providedt.h   
 
         Returns
         -------
@@ -223,7 +223,7 @@ class Event(Regressor):
             event_timepoints = self.event_timecourse(covariate=covariate)
 
             for r, regressor in enumerate(self.regressor_labels):
-                self.X[self.name, covariate, regressor] = sp.signal.fftconvolve(event_timepoints, self.L[r], 'same') # [:input_data.shape[0]]
+                self.X[self.name, covariate, regressor] = sp.signal.convolve(event_timepoints, self.L[r], 'full')[:self.fitter.input_signal.shape[0]]
 
 
     def get_timecourses(self):
