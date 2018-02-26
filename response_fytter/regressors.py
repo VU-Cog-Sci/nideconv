@@ -55,7 +55,7 @@ class Confound(Regressor):
         super(Confound, self).__init__(name, fitter)
 
         if confounds.ndim == 1:
-            self.confounds = confounds[:, np.newaxis]
+            self.confounds = confounds[np.newaxis, :]
         else:
             self.confounds = confounds
 
@@ -98,7 +98,8 @@ class Event(Regressor):
             the response fitter object needed to feed the Event its
             parameters.
 
-        basis_set : string ['fir', 'fourier', 'legendre']
+        basis_set : string ['fir', 'fourier', 'legendre'] or
+                    np.array (1D)
             basis set to use in the fitting. 
 
         interval : list (2)
@@ -147,27 +148,38 @@ class Event(Regressor):
             self.covariates = pd.DataFrame(covariates)
 
         # only for fir, the nr of regressors is dictated by the interval and sample frequency
-        if basis_set == 'fir':
-            self.n_regressors = int((self.interval[1] - self.interval[0]) 
-                                    * self.fitter.input_sample_frequency)
-        # legendre and fourier basis sets should be odd
-        elif self.basis_set in ('fourier', 'legendre'):
-            if (self.n_regressors %2 ) == 0:
-                self.n_regressors += 1
+        if type(basis_set) is str:
+            if basis_set == 'fir':
+                self.n_regressors = int((self.interval[1] - self.interval[0]) 
+                                        * self.fitter.input_sample_frequency)
+            # legendre and fourier basis sets should be odd
+            elif self.basis_set in ('fourier', 'legendre'):
+                if (self.n_regressors %2 ) == 0:
+                    self.n_regressors += 1
 
-        if self.basis_set == 'fir':
-            self.L = _create_fir_basis(self.timepoints, self.n_regressors)
-            self.regressor_labels = ['fir_%.3fs' % tp for tp in self.timepoints]
-        elif self.basis_set == 'fourier':
-            self.L = _create_fourier_basis(self.timepoints, self.n_regressors)
-            self.regressor_labels = ['fourier_intercept']
-            self.regressor_labels += ['fourier_sin_%d_period' % period for period in np.arange(1, self.n_regressors/2)]
-            self.regressor_labels += ['fourier_cos_%d_period' % period for period in np.arange(1, self.n_regressors/2)]
+            if self.basis_set == 'fir':
+                self.L = _create_fir_basis(self.timepoints, self.n_regressors)
+                self.regressor_labels = ['fir_%.3fs' % tp for tp in self.timepoints]
+            elif self.basis_set == 'fourier':
+                self.L = _create_fourier_basis(self.timepoints, self.n_regressors)
+                self.regressor_labels = ['fourier_intercept']
+                self.regressor_labels += ['fourier_sin_%d_period' % period for period in np.arange(1, self.n_regressors/2)]
+                self.regressor_labels += ['fourier_cos_%d_period' % period for period in np.arange(1, self.n_regressors/2)]
 
-        elif self.basis_set == 'legendre':
-            self.L = _create_legendre_basis(self.timepoints, self.n_regressors)
-            self.regressor_labels = ['legendre_%d' % poly for poly in np.arange(1, self.n_regressors + 1)]
+            elif self.basis_set == 'legendre':
+                self.L = _create_legendre_basis(self.timepoints, self.n_regressors)
+                self.regressor_labels = ['legendre_%d' % poly for poly in np.arange(1, self.n_regressors + 1)]
+        else:
+            if len(basis_set) != len(self.timepoints):
+                raise Exception('Basis set should be exactly %d timepoints long, ' \
+                                'current basis has is %d timepoints' % (len(basis_set), len(self.timepoints)))
+            if basis_set.ndim == 1:
+                basis_set = basis_set[np.newaxis, :]
 
+                
+            self.L = basis_set
+            self.n_regressors = self.L.shape[0]
+            self.regressor_labels = ['custom_basis_set_%d' % i for i in range(1, self.L.shape[0] + 1)]
 
         # perhaps for covariance matrix fitting, later:
         self.C = self.C_I = np.eye(self.L.shape[0])
