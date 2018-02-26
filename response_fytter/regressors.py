@@ -7,6 +7,7 @@ response
 
 import numpy as np
 import scipy as sp
+from scipy import signal
 import pandas as pd
 
 def _create_fir_basis(timepoints, n_regressors):
