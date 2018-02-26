@@ -31,9 +31,7 @@ class ResponseFytter(object):
 
         self.input_sample_duration = 1.0/self.input_sample_frequency
 
-        self.input_signal_time_points = np.arange(0, 
-                                                input_signal.shape[0] * self.input_sample_duration, 
-                                                self.input_sample_duration)
+        self.input_signal_time_points = np.linspace(0, (input_signal.shape[0]-1) *self.input_sample_duration, input_signal.shape[0]) 
 
         self.input_signal = pd.DataFrame(input_signal, index=self.input_signal_time_points)
 
@@ -203,14 +201,11 @@ class ResponseFytter(object):
                         'no betas found, please run regression before rsq'
 
         # rsq only counts where we actually try to explain data
-        explained_signal_timepoints = self.X.sum(axis = 0) != 0        
-        predicted_signal = self.predict_from_design_matrix().T
+        predicted_signal = self.predict_from_design_matrix()
 
-        valid_prediction = explained_signal[:,explained_signal_timepoints]
-        valid_signal = self.input_signal[:,explained_signal_timepoints]
 
-        self.rsq = 1.0 - np.sum((valid_prediction - valid_signal)**2, axis = -1) / \
-                                np.sum(valid_signal.squeeze()**2, axis = -1)
+        self.rsq = 1.0 - np.sum((np.atleast_2d(predicted_signal).T - self.input_signal)**2, axis = 0) / \
+                        np.sum(self.input_signal.squeeze()**2, axis = 0)
         return np.squeeze(self.rsq)
 
     #def get_timecourses
