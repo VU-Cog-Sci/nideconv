@@ -163,8 +163,8 @@ class Event(Regressor):
             elif self.basis_set == 'fourier':
                 self.L = _create_fourier_basis(self.timepoints, self.n_regressors)
                 self.regressor_labels = ['fourier_intercept']
-                self.regressor_labels += ['fourier_sin_%d_period' % period for period in np.arange(1, self.n_regressors/2)]
-                self.regressor_labels += ['fourier_cos_%d_period' % period for period in np.arange(1, self.n_regressors/2)]
+                self.regressor_labels += ['fourier_sin_%d_period' % period for period in np.arange(1, self.n_regressors//2 + 1)]
+                self.regressor_labels += ['fourier_cos_%d_period' % period for period in np.arange(1, self.n_regressors//2 + 1)]
 
             elif self.basis_set == 'legendre':
                 self.L = _create_legendre_basis(self.timepoints, self.n_regressors)
