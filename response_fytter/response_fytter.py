@@ -114,7 +114,7 @@ class ResponseFytter(object):
         """
         if type == 'ols':
             self.betas, self.residuals, self.rank, self.s = \
-                                np.linalg.lstsq(self.X, self.input_signal)
+                                np.linalg.lstsq(self.X, self.input_signal, rcond=None)
         elif type == 'ridge':   # betas and residuals are internalized by ridge_regress
             self.ridge_regress(cv=cv, alphas=alphas)
 
