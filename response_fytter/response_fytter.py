@@ -173,7 +173,7 @@ class ResponseFytter(object):
                     as the betas already calculated"""
 
 
-        prediction = np.dot(self.betas, X.T)
+        prediction = pd.Series(np.dot(self.betas, X.T), index=self.input_signal_time_points)
 
         return prediction
 
