@@ -113,12 +113,14 @@ class ResponseFytter(object):
 
         """
         if type == 'ols':
-            self.betas, self.residuals, self.rank, self.s = \
+            self.betas, self.ssquares, self.rank, self.s = \
                                 np.linalg.lstsq(self.X, self.input_signal, rcond=None)
+            self._send_betas_to_regressors()
+            self.residuals = self.input_signal.values.ravel() - self.predict_from_design_matrix().values.ravel()
+            self.residuals = pd.Series(self.residuals, index=self.input_signal_time_points)
         elif type == 'ridge':   # betas and residuals are internalized by ridge_regress
             self.ridge_regress(cv=cv, alphas=alphas)
 
-        self._send_betas_to_regressors()
 
     def ridge_regress(self, cv=20, alphas=None):
         """
