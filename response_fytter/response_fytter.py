@@ -203,11 +203,11 @@ class ResponseFytter(object):
                         'no betas found, please run regression before rsq'
 
         # rsq only counts where we actually try to explain data
-        predicted_signal = self.predict_from_design_matrix()
+        predicted_signal = self.predict_from_design_matrix().values
 
 
-        self.rsq = 1.0 - np.sum((np.atleast_2d(predicted_signal).T - self.input_signal)**2, axis = 0) / \
+        rsq = 1.0 - np.sum((np.atleast_2d(predicted_signal).T - self.input_signal)**2, axis = 0) / \
                         np.sum(self.input_signal.squeeze()**2, axis = 0)
-        return np.squeeze(self.rsq)
+        return np.squeeze(rsq)
 
     #def get_timecourses
