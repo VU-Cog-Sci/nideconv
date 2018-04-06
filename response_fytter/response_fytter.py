@@ -190,6 +190,8 @@ class ResponseFytter(object):
             tc['event type'] = event_type
             timecourses = pd.concat((timecourses, tc), ignore_index=True)
 
+        timecourses.set_index(['event type', 'covariate', 't'], inplace=True)
+
         return timecourses
 
     def rsq(self):
