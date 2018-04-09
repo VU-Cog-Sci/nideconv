@@ -213,3 +213,43 @@ class ResponseFytter(object):
         return np.squeeze(rsq)
 
     #def get_timecourses
+
+    def get_epochs(self, onsets, interval, remove_incomplete_epochs=True):
+        """ 
+        Return a matrix corresponding to specific onsets, within a given
+        interval. Matrix size is (n_onsets, n_timepoints_within_interval).
+
+        Note that any events that are in the ResponseFytter-object will
+        be regressed out before calculating the epochs.
+        """
+        
+        # If no other events are defined, no need to regress them out
+        if self.X.shape[1] == 0:
+            signal - self.input_signal
+        else:
+            self.regress()
+            signal = self.residuals
+            
+            
+        onsets = np.array(onsets)
+        
+        indices = np.array([signal.index.get_loc(np.max((0, onset)), method='nearest') for onset in onsets - interval[0]])
+        
+        interval_duration = interval[1] - interval[0]
+        interval_n_samples = int(interval_duration * self.input_sample_frequency) + 1
+        
+        indices = np.tile(indices[:, np.newaxis], (1, interval_n_samples)) + np.arange(interval_n_samples)
+        
+        # Set elements in epochs that fall out of time series to nan
+        indices[indices >= signal.shape[0]] = -1
+
+        # Make dummy element to fill epochs with nans if they fall out of the timeseries
+        signal = pd.concat((signal, pd.DataFrame([np.nan], index=[np.nan])))
+
+        # Calculate epochs
+        epochs =  pd.DataFrame(signal.values.ravel()[indices], columns=np.linspace(interval[0], interval[1], interval_n_samples))
+        
+        # Get rid of incomplete epochs:
+        if remove_incomplete_epochs:
+            epochs = epochs[~epochs.isnull().any(1)]
+        return epochs
