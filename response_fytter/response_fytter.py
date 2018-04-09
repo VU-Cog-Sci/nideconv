@@ -233,7 +233,7 @@ class ResponseFytter(object):
             
         onsets = np.array(onsets)
         
-        indices = np.array([signal.index.get_loc(np.max((0, onset)), method='nearest') for onset in onsets - interval[0]])
+        indices = np.array([signal.index.get_loc(onset), method='nearest') for onset in onsets + interval[0]])
         
         interval_duration = interval[1] - interval[0]
         interval_n_samples = int(interval_duration * self.input_sample_frequency) + 1
