@@ -251,7 +251,13 @@ class Event(Regressor):
         x = self.betas.to_frame().reset_index().rename(columns={0:'beta'})
 
         timecourses = x.groupby('covariate').beta.apply(lambda beta: pd.Series(beta.dot(self.L), index=self.timepoints)).reset_index()
-        timecourses.columns = ['covariate', 't', 'signal']
+        
+        if timecourses.shape[1] == 2:
+            assert(self.covariates.shape[1] == 1)
+            timecourses.columns = ['t', 'signal']
+            timecourses.insert(0, 'covariate', self.covariates.columns[0])
+        else:
+            timecourses.columns = ['covariate', 't', 'signal']
 
         return timecourses
 
