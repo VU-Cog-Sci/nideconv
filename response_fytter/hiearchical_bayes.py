@@ -22,7 +22,7 @@ class HierarchicalBayesianModel(object):
             self.subj_idxs.append(subj_idx)
             self.signals.append(fytter.input_signal)
             
-            if not ((fytter.X.columns == hfit.design_matrices[0].columns).all()):
+            if not ((fytter.X.columns == self.design_matrices[0].columns).all()):
                 raise Exception('Different design matrices!')
             
             self.design_matrices.append(fytter.X)
@@ -34,7 +34,7 @@ class HierarchicalBayesianModel(object):
         self._count_subjects()
         
         dm = pd.concat(self.design_matrices).values
-        signal = np.concatenate(hfit.signals, 0).squeeze()
+        signal = np.concatenate(self.signals, 0).squeeze()
         
         subject_labels = np.concatenate([[subj_idx] * len(self.design_matrices[i]) for i, subj_idx in enumerate(self.subj_idxs)])        
         subjects_ix = np.searchsorted(self.unique_subj_idx, subject_labels)
