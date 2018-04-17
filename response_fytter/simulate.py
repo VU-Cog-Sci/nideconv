@@ -4,9 +4,9 @@ import scipy as sp
 from scipy import signal
 
 
-def simulate_fmri_experiment(conditions, 
-                             sample_rate=1, 
-                             n_subjects=20, 
+def simulate_fmri_experiment(conditions=None,
+                             TR=1.,
+                             n_subjects=1, 
                              n_runs=1, 
                              n_trials=40, 
                              run_duration=300,
@@ -22,16 +22,25 @@ def simulate_fmri_experiment(conditions,
     """
     
     data = []
+
+    if conditions is None:
+        conditions = [{'name':'A',
+                       'mu_group':1,
+                       'std_group':0},
+                       {'name':'B',
+                       'mu_group':2,
+                       'std_group':0}]
     
+    sample_rate = 1./TR
     
-    frametimes = np.arange(0, run_duration, 1./sample_rate)
+    frametimes = np.arange(0, run_duration, TR)
     all_onsets = []
     
     parameters = []
     for subj_idx in np.arange(1, n_subjects+1):    
         
         for condition in conditions:
-            amplitude = sp.stats.norm(loc=condition['mu_group'], scale=condition['mu_std']).rvs()
+            amplitude = sp.stats.norm(loc=condition['mu_group'], scale=condition['std_group']).rvs()
             parameters.append({'subj_idx':subj_idx,
                                'condition':condition['name'],
                                'amplitude':amplitude})    
@@ -43,6 +52,7 @@ def simulate_fmri_experiment(conditions,
         for run in range(1, n_runs+1):
             
             signals = np.zeros((len(conditions), len(frametimes)))
+            print(signals.shape)
             
 
             for i, condition in enumerate(conditions):
@@ -56,8 +66,9 @@ def simulate_fmri_experiment(conditions,
                 isis = np.random.gamma(run_duration / n_trials, 1, size=n_trials * 2)
                 onsets = np.cumsum(isis)
                 onsets = np.random.choice(onsets[onsets < run_duration], n_trials)
+                print(len(onsets), np.max(onsets))
 
-                signals[i, (onsets / sample_rate).astype(int)] = parameters.loc[subj_idx, name]
+                signals[i, (onsets / TR).astype(int)] = parameters.loc[subj_idx, name]
                 
                 
                 all_onsets.append(pd.DataFrame({'onset':onsets}))
