@@ -9,6 +9,8 @@ import numpy as np
 import scipy as sp
 from scipy import signal
 import pandas as pd
+import warnings
+from .utils import get_proper_interval
 
 def _create_fir_basis(timepoints, n_regressors):
     """"""
@@ -139,19 +141,38 @@ class Event(Regressor):
         else:
             self.durations = durations
 
-        self.timepoints = np.arange(self.interval[0], self.interval[1], 
-                                    self.fitter.input_sample_duration)
+        self.interval_duration = self.interval[1] - self.interval[0]
+        self.sample_duration = self.fitter.input_sample_duration
+        self.sample_frequency = self.fitter.input_sample_frequency
+
+        # Check whether the interval is proper
+        if ~np.isclose(self.interval_duration % self.sample_duration, 0):
+            old_interval = self.interval
+            self.interval = get_proper_interval(old_interval, self.sample_duration)
+            self.interval_duration = self.interval[1] - self.interval[0]
+
+            warning = '\nWARNING: The duration of the interval %s is not a multiple of ' \
+                      'the sample duration %s.\n\r' \
+                      'Interval is now automatically set to %s.' \
+                       % (old_interval, self.sample_duration, self.interval)
+
+            warnings.warn(warning)
+
+        self.timepoints = np.arange(self.interval[0],
+                                    self.interval[1] + self.sample_duration,
+                                    self.sample_duration) 
+        onset_index = np.arange(self.onset_times.shape[0])
 
         if covariates is None: # single dict of one-valued covariates
-            self.covariates = pd.DataFrame({'intercept': np.ones(self.onset_times.shape)})
+            self.covariates = pd.DataFrame({'intercept': np.ones(self.onset_times.shape[0])})
         else:
             self.covariates = pd.DataFrame(covariates)
+
 
         # only for fir, the nr of regressors is dictated by the interval and sample frequency
         if type(basis_set) is str:
             if basis_set == 'fir':
-                self.n_regressors = int((self.interval[1] - self.interval[0]) 
-                                        * self.fitter.input_sample_frequency)
+                self.n_regressors = int((self.interval[1] - self.interval[0]) / self.sample_duration) + 1
             # legendre and fourier basis sets should be odd
             elif self.basis_set in ('fourier', 'legendre'):
                 if (self.n_regressors %2 ) == 0:
@@ -159,7 +180,7 @@ class Event(Regressor):
 
             if self.basis_set == 'fir':
                 self.L = _create_fir_basis(self.timepoints, self.n_regressors)
-                self.regressor_labels = ['fir_%.3fs' % tp for tp in self.timepoints]
+                self.regressor_labels = ['fir_%d' % i for i in np.arange(self.timepoints.shape[0])]
             elif self.basis_set == 'fourier':
                 self.L = _create_fourier_basis(self.timepoints, self.n_regressors)
                 self.regressor_labels = ['fourier_intercept']
@@ -205,7 +226,7 @@ class Event(Regressor):
         """
 
         event_timepoints = np.zeros(self.fitter.input_signal.shape[0])
-        mean_dur = self.durations.mean() * self.fitter.input_sample_frequency # check this
+        mean_dur = self.durations.mean() * self.sample_frequency # check this
 
         if covariate is None:
             covariate = self.covariates['intercept']
@@ -213,8 +234,8 @@ class Event(Regressor):
             covariate = self.covariates[covariate]
 
         for e,d,c in zip(self.onset_times, self.durations, covariate):
-            et = int((e+self.interval[0]) * self.fitter.input_sample_frequency) 
-            dt =  int(d*self.fitter.input_sample_frequency)
+            et = int((e+self.interval[0]) * self.sample_frequency) 
+            dt =  int(d*self.sample_frequency)
             event_timepoints[et:et+dt] = c/mean_dur
 
         return event_timepoints
@@ -227,7 +248,7 @@ class Event(Regressor):
         """
 
         # create empty design matrix
-        self.X = np.zeros((self.fitter.input_signal.shape[0], self.n_regressors *self.covariates.shape[1] ))
+        self.X = np.zeros((self.fitter.input_signal.shape[0], self.n_regressors * self.covariates.shape[1] ))
         columns = pd.MultiIndex.from_product(([self.name], self.covariates.columns, self.regressor_labels))
         self.X = pd.DataFrame(self.X, columns=columns, index=self.fitter.input_signal_time_points)
         self.X.index.rename('t', inplace=True)
@@ -260,6 +281,4 @@ class Event(Regressor):
             timecourses.columns = ['covariate', 't', 'signal']
 
         return timecourses
-
-
 
