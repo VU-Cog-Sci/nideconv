@@ -79,7 +79,7 @@ class HierarchicalStanModel(HierarchicalModel):
             self.model = pystan.StanModel(model_code=stan_code)
 
             with open(stan_model_fn, 'wb') as f:
-                pkl.dump(sm, f)
+                pkl.dump(self.model, f)
 
         else:
             with open(stan_model_fn, 'rb') as f:
