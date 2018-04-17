@@ -58,3 +58,5 @@ target/
 
 # Apple shit
 .DS_Store
+
+stanmodel.pkl
