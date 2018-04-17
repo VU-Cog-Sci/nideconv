@@ -52,8 +52,6 @@ def simulate_fmri_experiment(conditions=None,
         for run in range(1, n_runs+1):
             
             signals = np.zeros((len(conditions), len(frametimes)))
-            print(signals.shape)
-            
 
             for i, condition in enumerate(conditions):
                 if 'name' in condition:
@@ -66,7 +64,6 @@ def simulate_fmri_experiment(conditions=None,
                 isis = np.random.gamma(run_duration / n_trials, 1, size=n_trials * 2)
                 onsets = np.cumsum(isis)
                 onsets = np.random.choice(onsets[onsets < run_duration], n_trials)
-                print(len(onsets), np.max(onsets))
 
                 signals[i, (onsets / TR).astype(int)] = parameters.loc[subj_idx, name]
                 
@@ -85,8 +82,6 @@ def simulate_fmri_experiment(conditions=None,
             tmp = pd.DataFrame({'signal':signal})
             tmp['t'] = frametimes
             tmp['subj_idx'], tmp['run'] = subj_idx, run
-            
-            
                 
             data.append(tmp)
             
