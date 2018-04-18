@@ -32,6 +32,7 @@ def simulate_fmri_experiment(conditions=None,
                        'std_group':0}]
     
     sample_rate = 1./TR
+    base_n_trials = n_trials
     
     frametimes = np.arange(0, run_duration, TR)
     all_onsets = []
@@ -58,21 +59,37 @@ def simulate_fmri_experiment(conditions=None,
                     name = condition['name']
                 else:
                     name = 'Condition %d' % (i+1)
+
+
+                if 'n_trials' in condition:
+                    n_trials = condition['n_trials']
+                else:
+                    n_trials = base_n_trials
                     
+                
+                if type(n_trials) in [tuple, list]:
+                    n_trials_ = np.random.randint(*n_trials)
+                else:
+                    n_trials_ = n_trials
 
 
-                isis = np.random.gamma(run_duration / n_trials, 1, size=n_trials * 2)
-                onsets = np.cumsum(isis)
-                onsets = np.random.choice(onsets[onsets < run_duration], n_trials)
+                if n_trials_ > 0:
+                    isis = np.random.gamma(run_duration / n_trials_, 1, size=n_trials_ * 10)
+                    onsets = np.cumsum(isis)
 
-                signals[i, (onsets / TR).astype(int)] = parameters.loc[subj_idx, name]
-                
-                
-                all_onsets.append(pd.DataFrame({'onset':onsets}))
-                all_onsets[-1]['subj_idx'] = subj_idx
-                all_onsets[-1]['run'] = run
-                all_onsets[-1]['condition'] = name
-                
+                    while(np.sum(onsets < run_duration) < n_trials_):
+                        isis = np.random.gamma(run_duration / n_trials_, 1, size=n_trials_ * 10)
+                        onsets = np.cumsum(isis)
+
+                    onsets = np.random.choice(onsets[onsets < run_duration], n_trials_)
+
+                    signals[i, (onsets / TR).astype(int)] = parameters.loc[subj_idx, name]
+                    
+                    
+                    all_onsets.append(pd.DataFrame({'onset':onsets}))
+                    all_onsets[-1]['subj_idx'] = subj_idx
+                    all_onsets[-1]['run'] = run
+                    all_onsets[-1]['condition'] = name
                 
 
             signal = signals.sum(0)
