@@ -8,55 +8,13 @@ import pandas as pd
 
 __dir__ = os.path.abspath(os.path.dirname(__file__))
 
-stan_code = """
-data {
-    int<lower=0> n; // number of observations
-    int<lower=0> m; // number of predictors
-    int<lower=0> j; // number of groups
-
-    real measure[n];
-    matrix[n, m] X;
-    int<lower=0> subj_idx[n];
-}
-
-parameters {
-    real<lower=0> eps;
-    row_vector[m] beta_group;
-    matrix[j, m] beta_subject_offset;
-    row_vector<lower=0>[m] group_sd;
-
-}
-transformed parameters {
-
-    matrix[j, m] beta_subject;
-
-    for (i in 1:j)
-        beta_subject[i, :] = beta_group + group_sd .* beta_subject_offset[i];
-
-}
-
-model {
-    matrix[n, m] beta;
-
-    for (i in 1:n)
-        beta[i, :] = beta_subject[subj_idx[i]];
-
-    beta_group ~ normal(0, 10);
-    to_vector(beta_subject_offset) ~ normal(0, 1);
-    to_vector(group_sd) ~ cauchy(0, 2.5);
-
-    eps ~ cauchy(0, 2.5);
-
-    measure ~ normal(rows_dot_product(X, beta), eps);
-}
-"""
-
 class HierarchicalModel(object):
 
-    def __init__(self, X, subject_ids):
+    def __init__(self, X, subject_ids, subjectwise_errors=False):
         
         self.X = pd.DataFrame(X)
         self.subject_ids = np.array(subject_ids).squeeze()
+        self.subjectwise_errors = subjectwise_errors
 
         if(self.subject_ids.shape[0] != self.X.shape[0]):
             raise Exception("Number of subjects indices should" \
@@ -78,20 +36,26 @@ class HierarchicalModel(object):
 
 class HierarchicalStanModel(HierarchicalModel):
 
-    def __init__(self, X, subject_ids, recompile=False):
+    def __init__(self, X, subject_ids, subjectwise_errors=False, recompile=False):
         
-        super(HierarchicalStanModel, self).__init__(X, subject_ids)
+        super(HierarchicalStanModel, self).__init__(X, subject_ids, subjectwise_errors)
 
-        stan_model_fn = os.path.join(__dir__, 'stanmodel.pkl')
+        if subjectwise_errors:
+            fn_string = 'subjectwise_errors'
+        else:
+            fn_string = 'groupwise_errors'
 
-        if not os.path.exists(stan_model_fn) or recompile:
-            self.model = pystan.StanModel(model_code=stan_code)
+        stan_model_fn_pkl = os.path.join(__dir__, '%s.pkl' % fn_string)
+        stan_model_fn_stan = os.path.join(__dir__, '%s.stan' % fn_string)
 
-            with open(stan_model_fn, 'wb') as f:
+        if not os.path.exists(stan_model_fn_pkl) or recompile:
+            self.model = pystan.StanModel(file=stan_model_fn_stan)
+
+            with open(stan_model_fn_pkl, 'wb') as f:
                 pkl.dump(self.model, f)
 
         else:
-            with open(stan_model_fn, 'rb') as f:
+            with open(stan_model_fn_pkl, 'rb') as f:
                 self.model = pkl.load(f)
 
     def sample(self, signal, chains=1, iter=1000, *args, **kwargs):

@@ -59,4 +59,5 @@ target/
 # Apple shit
 .DS_Store
 
-stanmodel.pkl
+groupwise_model.pkl
+subjectwise_model.pkl
