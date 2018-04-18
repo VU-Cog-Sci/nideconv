@@ -67,3 +67,24 @@ class HierarchicalBayesianModel(object):
         else:
             return timecourses
 
+    def get_subject_timecourse_traces(self, melt=False):
+        timecourses = []
+
+        
+        traces = self._model.get_subject_traces()
+
+        for subject_id in traces.columns.levels[0]:
+            for event_key, event in self.response_fytters[0].events.items():
+                for covariate in event.covariates.columns:
+                    columns = pd.MultiIndex.from_product([[subject_id], [event_key], [covariate], event.timepoints], 
+                                                         names=['subject_id', 'event type', 'covariate', 't'])
+                    tmp = pd.DataFrame(traces[subject_id, event_key, covariate].dot(event.L))
+                    tmp.columns = columns
+                    timecourses.append(tmp)
+
+        timecourses = pd.concat((timecourses), 1)
+
+        if melt:
+            return pd.melt(timecourses)
+        else:
+            return timecourses
