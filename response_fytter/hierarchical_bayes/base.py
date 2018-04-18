@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import pymc3 as pm
 from .backends import HierarchicalStanModel
+import warnings
     
 class HierarchicalBayesianModel(object):
     
@@ -46,7 +47,7 @@ class HierarchicalBayesianModel(object):
         self._model.sample(self.signal, chains=chains, iter=iter, *args, **kwargs)
             
 
-    def get_group_timecourse_traces(self, melt=False):
+    def get_group_timecourse_traces(self, melt=False, n=None):
         traces = self._model.get_group_traces()
 
         timecourses = []
@@ -62,12 +63,9 @@ class HierarchicalBayesianModel(object):
                 
         timecourses = pd.concat((timecourses), 1)
 
-        if melt:
-            return pd.melt(timecourses)
-        else:
-            return timecourses
+        return _process_timecourses(timecourses, melt, n)
 
-    def get_subject_timecourse_traces(self, melt=False):
+    def get_subject_timecourse_traces(self, melt=False, n=None):
         timecourses = []
 
         
@@ -83,8 +81,22 @@ class HierarchicalBayesianModel(object):
                     timecourses.append(tmp)
 
         timecourses = pd.concat((timecourses), 1)
+        return _process_timecourses(timecourses, melt, n)
 
-        if melt:
-            return pd.melt(timecourses)
-        else:
-            return timecourses
+    
+def _process_timecourses(timecourses, melt, n):
+
+    if n is not None:
+        if n > len(timecourses):
+            warnings.warn('You asked for %d samples, but there are only %d' % (n, len(timecourses)))
+
+        stepsize = np.max((np.floor(len(timecourses) / n), 1)).astype(int)
+    
+        timecourses = timecourses.iloc[::stepsize]
+        timecourses = timecourses.iloc[:n]
+
+    if melt:
+        timecourses['sample'] = timecourses.index
+        return pd.melt(timecourses, id_vars=['sample'])
+    else:
+        return timecourses
