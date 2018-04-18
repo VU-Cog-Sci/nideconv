@@ -85,7 +85,7 @@ class HierarchicalStanModel(HierarchicalModel):
                                                        np.prod(self.results['beta_subject'].shape[1:])))
 
 
-        columns = [(c,) if type(c) is str else c for c in self.X.columns.values]
+        columns = [(c,) if type(c) is not tuple else c for c in self.X.columns.values]
         columns = [(sid,) + column for sid in self.unique_subject_ids for column in columns]
         columns = pd.MultiIndex.from_tuples(columns,
                                             names=['subject_id'] + self.X.columns.names)
