@@ -65,7 +65,8 @@ class Confound(Regressor):
 
     def create_design_matrix(self):
         self.X = self.confounds
-        self.X.columns = pd.MultiIndex.from_product([['confounds'], [self.name], self.X.columns])
+        self.X.columns = pd.MultiIndex.from_product([['confounds'], [self.name], self.X.columns],
+                                                    names=['event type', 'covariate', 'regressor'])
         self.X.set_index(self.fitter.input_signal_time_points, inplace=True)
         self.X.index.rename('t', inplace=True)
 
@@ -249,7 +250,8 @@ class Event(Regressor):
 
         # create empty design matrix
         self.X = np.zeros((self.fitter.input_signal.shape[0], self.n_regressors * self.covariates.shape[1] ))
-        columns = pd.MultiIndex.from_product(([self.name], self.covariates.columns, self.regressor_labels))
+        columns = pd.MultiIndex.from_product(([self.name], self.covariates.columns, self.regressor_labels), 
+        names=['event type', 'covariate', 'regressor'])
         self.X = pd.DataFrame(self.X, columns=columns, index=self.fitter.input_signal_time_points)
         self.X.index.rename('t', inplace=True)
         

@@ -83,8 +83,12 @@ class HierarchicalStanModel(HierarchicalModel):
 
         traces = self.results['beta_subject'].reshape((self.results['beta_subject'].shape[0],
                                                        np.prod(self.results['beta_subject'].shape[1:])))
-        columns = pd.MultiIndex.from_product([self.unique_subject_ids, self.X.columns],
-                                             names=['subject_id', 'regressor'])        
+
+
+        columns = [(c,) if type(c) is str else c for c in self.X.columns.values]
+        columns = [(sid,) + column for sid in self.unique_subject_ids for column in columns]
+        columns = pd.MultiIndex.from_tuples(columns,
+                                            names=['subject_id'] + self.X.columns.names)
 
         traces = pd.DataFrame(traces, columns=columns)
 
