@@ -45,7 +45,25 @@ class HierarchicalBayesianModel(object):
     def sample(self, chains=1, iter=1000, *args, **kwargs):
         self._model.sample(self.signal, chains=chains, iter=iter, *args, **kwargs)
             
-    def _count_subjects(self):
-        self.unique_subj_idx = np.sort(np.unique(self.subj_idxs))
-        self.n_subjects = len(self.unique_subj_idx)
-        
+
+    def get_group_timecourse_traces(self, melt=False):
+        traces = self._model.get_group_traces()
+
+        timecourses = []
+
+        for event_key, event in self.response_fytters[0].events.items():
+            
+            for covariate in event.covariates.columns:
+                columns = pd.MultiIndex.from_product([[event_key], [covariate], event.timepoints], 
+                                                     names=['event type', 'covariate', 't'])
+                tmp = pd.DataFrame(traces[event_key, covariate].dot(event.L))
+                tmp.columns = columns
+                timecourses.append(tmp)
+                
+        timecourses = pd.concat((timecourses), 1)
+
+        if melt:
+            return pd.melt(timecourses)
+        else:
+            return timecourses
+
