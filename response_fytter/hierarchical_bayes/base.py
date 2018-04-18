@@ -30,26 +30,22 @@ class HierarchicalBayesianModel(object):
             self.response_fytters.append(fytter)            
             
             
-    def build_model(self, backend='stan', *args, **kwargs):
+    def build_model(self, backend='stan', subjectwise_errors=False, *args, **kwargs):
         
-        dm = pd.concat(self.design_matrices)
-        signal = np.concatenate(self.signals, 0).squeeze()
+        self.X = pd.concat(self.design_matrices)
+        self.signal = np.concatenate(self.signals, 0).squeeze()
         
         subject_labels = np.concatenate([[subj_idx] * len(self.design_matrices[i]) for i, subj_idx in enumerate(self.subj_idxs)])        
 
         if backend == 'stan':
-            self._model = HierarchicalStanModel(dm, subject_labels, *args, **kwargs)
+            self._model = HierarchicalStanModel(self.X, subject_labels, *args, **kwargs)
         elif backend == 'pymc3':
             raise NotImplementedError()
 
     def sample(self, chains=1, iter=1000, *args, **kwargs):
-        self._model.sample(chains=chains, iter=iter, *args, **kwargs)
+        self._model.sample(self.signal, chains=chains, iter=iter, *args, **kwargs)
             
     def _count_subjects(self):
         self.unique_subj_idx = np.sort(np.unique(self.subj_idxs))
         self.n_subjects = len(self.unique_subj_idx)
         
-        
-    def sample(self, *args, **kwargs):
-        with self.model:
-            self.results = pm.sample(*args, **kwargs)
