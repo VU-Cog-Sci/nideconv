@@ -21,9 +21,9 @@ model {
     matrix[n, m] beta;
     for (i in 1:n)
         beta[i, :] = beta_subject[subj_idx[i]];
-    beta_group ~ normal(0, 10);
-    to_vector(beta_subject_offset) ~ normal(0, 1);
-    to_vector(group_sd) ~ cauchy(0, 2.5);
-    eps ~ cauchy(0, 2.5);
+    beta_group ~ cauchy(0, 5);
+    to_vector(beta_subject_offset) ~ cauchy(0, 5);
+    to_vector(group_sd) ~ cauchy(0, 5);
+    eps ~ cauchy(0, 5);
     measure ~ normal(rows_dot_product(X, beta), eps);
 }

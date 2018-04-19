@@ -10,11 +10,12 @@ __dir__ = os.path.abspath(os.path.dirname(__file__))
 
 class HierarchicalModel(object):
 
-    def __init__(self, X, subject_ids, subjectwise_errors=False):
+    def __init__(self, X, subject_ids, subjectwise_errors=False, cauchy_priors=False):
         
         self.X = pd.DataFrame(X)
         self.subject_ids = np.array(subject_ids).squeeze()
         self.subjectwise_errors = subjectwise_errors
+        self.cauchy_priors = cauchy_priors
 
         if(self.subject_ids.shape[0] != self.X.shape[0]):
             raise Exception("Number of subjects indices should" \
@@ -36,7 +37,7 @@ class HierarchicalModel(object):
 
 class HierarchicalStanModel(HierarchicalModel):
 
-    def __init__(self, X, subject_ids, subjectwise_errors=False, recompile=False):
+    def __init__(self, X, subject_ids, subjectwise_errors=False, cauchy_priors=False, recompile=False):
         
         super(HierarchicalStanModel, self).__init__(X, subject_ids, subjectwise_errors)
 
@@ -44,9 +45,15 @@ class HierarchicalStanModel(HierarchicalModel):
             fn_string = 'subjectwise_errors'
         else:
             fn_string = 'groupwise_errors'
+        
+        if cauchy_priors:
+            fn_string += '_cauchy'
+        else:
+            fn_string += '_normal'
 
-        stan_model_fn_pkl = os.path.join(__dir__, '%s.pkl' % fn_string)
-        stan_model_fn_stan = os.path.join(__dir__, '%s.stan' % fn_string)
+
+        stan_model_fn_pkl = os.path.join(__dir__, 'stan_models', '%s.pkl' % fn_string)
+        stan_model_fn_stan = os.path.join(__dir__, 'stan_models', '%s.stan' % fn_string)
 
         if not os.path.exists(stan_model_fn_pkl) or recompile:
             self.model = pystan.StanModel(file=stan_model_fn_stan)

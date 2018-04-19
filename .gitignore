@@ -59,5 +59,4 @@ target/
 # Apple shit
 .DS_Store
 
-groupwise_errors.pkl
-subjectwise_errors.pkl
+*.pkl
