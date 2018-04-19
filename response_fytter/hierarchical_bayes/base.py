@@ -3,6 +3,8 @@ import pandas as pd
 import pymc3 as pm
 from .backends import HierarchicalStanModel
 import warnings
+import seaborn as sns
+from .plotting import plot_hpd
     
 class HierarchicalBayesianModel(object):
     
@@ -84,6 +86,51 @@ class HierarchicalBayesianModel(object):
 
         timecourses = pd.concat((timecourses), 1)
         return _process_timecourses(timecourses, melt, n)
+
+
+    def plot_group_timecourses(self, 
+                              hue='event type', 
+                              col='covariate', 
+                              alpha=0.05,
+                              transparency=0.1,
+                              row=None, 
+                              covariates=None, 
+                              event_types=None,
+                              hline=True,
+                              vline=True,
+                              legend=True):
+        
+        if type(covariates) is list:
+            covariates = [covariates]
+            
+        if type(event_types) is list:
+            covariates = [event_types]        
+        
+        tc = self.get_group_timecourse_traces(True)
+
+        if covariates is not None:
+            tc = tc[np.in1d(tc.covariate, covariates)]
+
+        if event_types is not None:
+            tc = tc[np.in1d(tc['event type'], event_types)]        
+            
+        fac = sns.FacetGrid(tc, hue=hue, col=col, row=row, aspect=1.5)
+        fac.map_dataframe(plot_hpd, alpha=alpha, transparency=transparency)
+        
+        if hline:
+            fac.map(plt.axhline, c='k', ls='--') 
+            
+        if vline:
+            fac.map(plt.axvline, c='k', ls='--') 
+        
+        if legend:
+            fac.add_legend()
+            for patch in fac._legend.get_patches():
+                patch.set_alpha(.8)
+
+
+            
+        return fac 
 
     
 def _process_timecourses(timecourses, melt, n):
