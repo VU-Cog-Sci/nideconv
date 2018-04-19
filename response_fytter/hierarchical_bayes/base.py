@@ -43,12 +43,17 @@ class HierarchicalBayesianModel(object):
         subject_labels = np.concatenate([[subj_idx] * len(self.design_matrices[i]) for i, subj_idx in enumerate(self.subj_idxs)])        
 
         if backend == 'stan':
-            self._model = HierarchicalStanModel(self.X, subject_labels, *args, **kwargs)
+            self._model = HierarchicalStanModel(self.X,
+                                                subject_labels,
+                                                subjectwise_errors,
+                                                cauchy_priors,
+                                                *args,
+                                                **kwargs)
         elif backend == 'pymc3':
             raise NotImplementedError()
 
-    def sample(self, chains=1, iter=1000, *args, **kwargs):
-        self._model.sample(self.signal, chains=chains, iter=iter, *args, **kwargs)
+    def sample(self, chains=1, iter=1000, init_ols=False, *args, **kwargs):
+        self._model.sample(self.signal, chains=chains, iter=iter, init_ols=init_ols, *args, **kwargs)
             
 
     def get_group_timecourse_traces(self, melt=False, n=None):

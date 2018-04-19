@@ -5,6 +5,7 @@ import numpy as np
 import pymc3 as pm
 import theano.tensor as T
 import pandas as pd
+from .utils import do_ols
 
 __dir__ = os.path.abspath(os.path.dirname(__file__))
 
@@ -34,6 +35,30 @@ class HierarchicalModel(object):
         self.unique_subject_ids = np.sort(np.unique(self.subject_ids))
         self.n_subjects = len(self.unique_subject_ids)
         self.subj_idx= np.searchsorted(self.unique_subject_ids, self.subject_ids)
+
+    def get_ols_estimates(self, signal):
+        print("Estimating parameters using OLS...")
+
+        signal = pd.DataFrame(signal, index=self.X.index)
+
+        matrix = pd.concat((signal, self.X), 1)
+                           
+        self.ols_betas = matrix.groupby(self.subject_ids).apply(do_ols)
+        index = [(e,) + t for e, t in zip(self.ols_betas.index.get_level_values(0),
+                                          self.ols_betas.index.get_level_values(1))]
+
+
+        self.ols_betas.index = pd.MultiIndex.from_tuples(index,
+                                                        names=['subject_id',
+                                                               'event type',
+                                                               'covariate',
+                                                               'regressor'])
+        
+        self.ols_betas_group = self.ols_betas.groupby(level=[1,2,3], sort=False).mean()
+        self.ols_sd_group = self.ols_betas.groupby(level=[1,2,3], sort=False).std()
+        
+        if len(self.unique_subject_ids) == 1:
+            self.ols_sd_group.iloc[:] = 1
 
 class HierarchicalStanModel(HierarchicalModel):
 
@@ -65,7 +90,7 @@ class HierarchicalStanModel(HierarchicalModel):
             with open(stan_model_fn_pkl, 'rb') as f:
                 self.model = pkl.load(f)
 
-    def sample(self, signal, chains=1, iter=1000, *args, **kwargs):
+    def sample(self, signal, chains=1, iter=1000, init_ols=False, *args, **kwargs):
 
         super(HierarchicalStanModel, self).sample(signal, chains, *args, **kwargs)
 
@@ -76,9 +101,15 @@ class HierarchicalStanModel(HierarchicalModel):
                 'm':self.X.shape[1],
                 'X':self.X.values}
 
+        if init_ols:
+            init_dict = [self.get_init_dict(signal)] * chains
+        else:
+            init_dict = 'random'
+
         self.results = self.model.sampling(data=data, 
                                            chains=chains,
                                            iter=iter,
+                                           init=init_dict,
                                            *args,
                                            **kwargs)
 
@@ -120,7 +151,23 @@ class HierarchicalStanModel(HierarchicalModel):
         if not hasattr(self, 'results'):
             raise Exception('Model has not been sampled yet!')
 
+    def get_init_dict(self, signal):
+        self.get_ols_estimates(signal)
+        
+        init_dict = {}
+        init_dict['beta_subject_offset'] = self.ols_betas.unstack(level=0).T- self.ols_betas_group.unstack([0,1, 2])['beta'].T
+        init_dict['beta_subject_offset'] = init_dict['beta_subject_offset'][self.X.columns].values
 
+        init_dict['beta_group'] = self.ols_betas_group.values.squeeze()
+        init_dict['group_sd'] = self.ols_sd_group.values.squeeze()
+        
+        
+        if self.subjectwise_errors:
+            init_dict['eps'] = np.ones(len(self.unique_subject_ids))
+        else:
+            init_dict['eps'] = 1
+            
+        return init_dict
 
 class HierarchicalPymc3Model(HierarchicalModel):
 
@@ -151,5 +198,4 @@ class HierarchicalPymc3Model(HierarchicalModel):
             likelihood = pm.Normal('like', mu=0, sd=eps, observed=residuals)
 
             self.results = pm.sample(draws=iter, chains=chains, *args, **kwargs)
-
 
