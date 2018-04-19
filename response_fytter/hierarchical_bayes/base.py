@@ -31,7 +31,9 @@ class HierarchicalBayesianModel(object):
             self.response_fytters.append(fytter)            
             
             
-    def build_model(self, backend='stan', subjectwise_errors=False, *args, **kwargs):
+    def build_model(self, backend='stan', subjectwise_errors=False,
+                    cauchy_priors=False,
+                    *args, **kwargs):
         
         self.X = pd.concat(self.design_matrices)
         self.signal = np.concatenate(self.signals, 0).squeeze()
