@@ -105,10 +105,10 @@ class HierarchicalBayesianModel(object):
                               vline=True,
                               legend=True):
         
-        if type(covariates) is list:
+        if type(covariates) is str:
             covariates = [covariates]
             
-        if type(event_types) is list:
+        if type(event_types) is str:
             covariates = [event_types]        
         
         tc = self.get_group_timecourse_traces(True)
