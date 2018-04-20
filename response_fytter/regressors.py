@@ -66,7 +66,7 @@ class Confound(Regressor):
     def create_design_matrix(self):
         self.X = self.confounds
         self.X.columns = pd.MultiIndex.from_product([['confounds'], [self.name], self.X.columns],
-                                                    names=['event type', 'covariate', 'regressor'])
+                                                    names=['event_type', 'covariate', 'regressor'])
         self.X.set_index(self.fitter.input_signal_time_points, inplace=True)
         self.X.index.rename('t', inplace=True)
 
@@ -81,8 +81,8 @@ class Intercept(Confound):
 
 class Event(Regressor):
     """Event is a class that encapsulates the creation and conversion
-    of design matrices and resulting beta weights for specific event types. 
-    Design matrices for an event type can be built up of different basis sets,
+    of design matrices and resulting beta weights for specific event_types. 
+    Design matrices for an event_type can be built up of different basis sets,
     and one can choose the time interval over which to fit the response. """
     def __init__(self, 
                 name, 
@@ -243,7 +243,7 @@ class Event(Regressor):
     
     def create_design_matrix(self):
         """
-        create_design_matrix creates the design matrix for this event type by
+        create_design_matrix creates the design matrix for this event_type by
         iterating over covariates. 
         
         """
@@ -251,7 +251,7 @@ class Event(Regressor):
         # create empty design matrix
         self.X = np.zeros((self.fitter.input_signal.shape[0], self.n_regressors * self.covariates.shape[1] ))
         columns = pd.MultiIndex.from_product(([self.name], self.covariates.columns, self.regressor_labels), 
-        names=['event type', 'covariate', 'regressor'])
+        names=['event_type', 'covariate', 'regressor'])
         self.X = pd.DataFrame(self.X, columns=columns, index=self.fitter.input_signal_time_points)
         self.X.index.rename('t', inplace=True)
         

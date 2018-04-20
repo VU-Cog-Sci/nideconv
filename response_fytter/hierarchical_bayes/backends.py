@@ -50,7 +50,7 @@ class HierarchicalModel(object):
 
         self.ols_betas.index = pd.MultiIndex.from_tuples(index,
                                                         names=['subject_id',
-                                                               'event type',
+                                                               'event_type',
                                                                'covariate',
                                                                'regressor'])
         

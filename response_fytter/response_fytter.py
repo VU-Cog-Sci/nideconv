@@ -6,7 +6,7 @@ from sklearn import linear_model
 class ResponseFytter(object):
     """ResponseFytter takes an input signal and performs deconvolution on it. 
     To do this, it requires event times, and possible covariates.
-    ResponseFytter can, for each event type, use different basis function sets,
+    ResponseFytter can, for each event_type, use different basis function sets,
     see Event."""
     def __init__(self, input_signal, input_sample_frequency, add_intercept=True, **kwargs):
         """ Initialize a ResponseFytter object.
@@ -75,12 +75,12 @@ class ResponseFytter(object):
 
     def add_event(self, event_name, **kwargs):
         """
-        create design matrix for a given event type.
+        create design matrix for a given event_type.
 
         Parameters
         ----------
         event_name : string
-            Name of the event type, used as key to lookup this event type's
+            Name of the event_type, used as key to lookup this event_type's
             characteristics
 
         **kwargs : dict
@@ -149,7 +149,7 @@ class ResponseFytter(object):
 
     def _send_betas_to_regressors(self):
         self.betas = pd.Series(self.betas.ravel(), index=self.X.columns)
-        self.betas.index.set_names(['event type','covariate', 'regressor'], inplace=True)
+        self.betas.index.set_names(['event_type','covariate', 'regressor'], inplace=True)
 
         for key in self.events:
             self.events[key].betas = self.betas[key]
@@ -187,10 +187,10 @@ class ResponseFytter(object):
 
         for event_type in self.events:
             tc = self.events[event_type].get_timecourses()
-            tc['event type'] = event_type
+            tc['event_type'] = event_type
             timecourses = pd.concat((timecourses, tc), ignore_index=True)
 
-        timecourses.set_index(['event type', 'covariate', 't'], inplace=True)
+        timecourses.set_index(['event_type', 'covariate', 't'], inplace=True)
 
         return timecourses
 

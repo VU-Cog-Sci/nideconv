@@ -4,7 +4,7 @@ import scipy as sp
 from scipy import signal
 
 
-def simulate_fmri_experiment(conditions=None,
+def simulate_fmri_experiment(event_types=None,
                              TR=1.,
                              n_subjects=1, 
                              n_runs=1, 
@@ -14,17 +14,17 @@ def simulate_fmri_experiment(conditions=None,
     """
     This function simulates an fMRI experiment. 
     
-    The conditions-variable is a list of dictionaries, each including a mu_group and mu_std-field
+    The event_types-variable is a list of dictionaries, each including a mu_group and mu_std-field
     to indicate the mean impulse height, as well as the standard deviation across subjects.
-    It also includes a n_trials-field to simulate the number of trials for that condition and
-    potentially a 'name'-field to label the condition.
+    It also includes a n_trials-field to simulate the number of trials for that event_type and
+    potentially a 'name'-field to label the event_type.
     The sd of the noise in the signal is always unity.
     """
     
     data = []
 
-    if conditions is None:
-        conditions = [{'name':'A',
+    if event_types is None:
+        event_types = [{'name':'A',
                        'mu_group':1,
                        'std_group':0},
                        {'name':'B',
@@ -38,31 +38,31 @@ def simulate_fmri_experiment(conditions=None,
     all_onsets = []
     
     parameters = []
-    for subj_idx in np.arange(1, n_subjects+1):    
+    for subject_id in np.arange(1, n_subjects+1):    
         
-        for condition in conditions:
-            amplitude = sp.stats.norm(loc=condition['mu_group'], scale=condition['std_group']).rvs()
-            parameters.append({'subj_idx':subj_idx,
-                               'condition':condition['name'],
+        for event_type in event_types:
+            amplitude = sp.stats.norm(loc=event_type['mu_group'], scale=event_type['std_group']).rvs()
+            parameters.append({'subject_id':subject_id,
+                               'event_type':event_type['name'],
                                'amplitude':amplitude})    
             
-    parameters = pd.DataFrame(parameters).set_index(['subj_idx', 'condition'])
+    parameters = pd.DataFrame(parameters).set_index(['subject_id', 'event_type'])
     
-    for subj_idx in np.arange(1, n_subjects+1):    
+    for subject_id in np.arange(1, n_subjects+1):    
         
         for run in range(1, n_runs+1):
             
-            signals = np.zeros((len(conditions), len(frametimes)))
+            signals = np.zeros((len(event_types), len(frametimes)))
 
-            for i, condition in enumerate(conditions):
-                if 'name' in condition:
-                    name = condition['name']
+            for i, event_type in enumerate(event_types):
+                if 'name' in event_type:
+                    name = event_type['name']
                 else:
                     name = 'Condition %d' % (i+1)
 
 
-                if 'n_trials' in condition:
-                    n_trials = condition['n_trials']
+                if 'n_trials' in event_type:
+                    n_trials = event_type['n_trials']
                 else:
                     n_trials = base_n_trials
                     
@@ -83,13 +83,13 @@ def simulate_fmri_experiment(conditions=None,
 
                     onsets = np.random.choice(onsets[onsets < run_duration], n_trials_)
 
-                    signals[i, (onsets / TR).astype(int)] = parameters.loc[subj_idx, name]
+                    signals[i, (onsets / TR).astype(int)] = parameters.loc[subject_id, name]
                     
                     
                     all_onsets.append(pd.DataFrame({'onset':onsets}))
-                    all_onsets[-1]['subj_idx'] = subj_idx
+                    all_onsets[-1]['subject_id'] = subject_id
                     all_onsets[-1]['run'] = run
-                    all_onsets[-1]['condition'] = name
+                    all_onsets[-1]['event_type'] = name
                 
 
             signal = signals.sum(0)
@@ -98,13 +98,13 @@ def simulate_fmri_experiment(conditions=None,
             
             tmp = pd.DataFrame({'signal':signal})
             tmp['t'] = frametimes
-            tmp['subj_idx'], tmp['run'] = subj_idx, run
+            tmp['subject_id'], tmp['run'] = subject_id, run
                 
             data.append(tmp)
             
-    data = pd.concat(data).set_index(['subj_idx', 'run', 't'])
+    data = pd.concat(data).set_index(['subject_id', 'run', 't'])
     
-    onsets = pd.concat(all_onsets).set_index(['subj_idx', 'run', 'condition'])
+    onsets = pd.concat(all_onsets).set_index(['subject_id', 'run', 'event_type'])
     
     return data, onsets, parameters
 

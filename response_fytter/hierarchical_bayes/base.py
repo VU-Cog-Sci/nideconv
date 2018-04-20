@@ -67,7 +67,7 @@ class HierarchicalBayesianModel(object):
             
             for covariate in event.covariates.columns:
                 columns = pd.MultiIndex.from_product([[event_key], [covariate], event.timepoints], 
-                                                     names=['event type', 'covariate', 't'])
+                                                     names=['event_type', 'covariate', 't'])
                 tmp = pd.DataFrame(traces[event_key, covariate].dot(event.L))
                 tmp.columns = columns
                 timecourses.append(tmp)
@@ -86,7 +86,7 @@ class HierarchicalBayesianModel(object):
             for event_key, event in self.response_fytters[0].events.items():
                 for covariate in event.covariates.columns:
                     columns = pd.MultiIndex.from_product([[subject_id], [event_key], [covariate], event.timepoints], 
-                                                         names=['subject_id', 'event type', 'covariate', 't'])
+                                                         names=['subject_id', 'event_type', 'covariate', 't'])
                     tmp = pd.DataFrame(traces[subject_id, event_key, covariate].dot(event.L))
                     tmp.columns = columns
                     timecourses.append(tmp)
@@ -96,7 +96,7 @@ class HierarchicalBayesianModel(object):
 
 
     def plot_group_timecourses(self, 
-                              hue='event type', 
+                              hue='event_type', 
                               col='covariate', 
                               alpha=0.05,
                               transparency=0.1,
@@ -114,7 +114,7 @@ class HierarchicalBayesianModel(object):
             tc = tc[np.in1d(tc.covariate, covariates)]
 
         if event_types is not None:
-            tc = tc[np.in1d(tc['event type'], event_types)]        
+            tc = tc[np.in1d(tc['event_type'], event_types)]        
             
         fac = sns.FacetGrid(tc, hue=hue, col=col, row=row, aspect=1.5)
         fac.map_dataframe(plot_hpd, alpha=alpha, transparency=transparency)
@@ -133,7 +133,7 @@ class HierarchicalBayesianModel(object):
         return fac 
 
     def plot_subject_timecourses(self, 
-                                 hue='event type', 
+                                 hue='event_type', 
                                  col=None,
                                  row=None,
                                  subject_ids=None,
@@ -155,7 +155,7 @@ class HierarchicalBayesianModel(object):
             tc = tc[np.in1d(tc.covariate, covariates)]
 
         if event_types is not None:
-            tc = tc[np.in1d(tc['event type'], event_types)] 
+            tc = tc[np.in1d(tc['event_type'], event_types)] 
             
         if subject_ids is not None:
             tc = tc[np.in1d(tc['subject_id'], subject_ids)]          
