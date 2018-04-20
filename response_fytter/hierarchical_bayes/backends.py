@@ -62,19 +62,22 @@ class HierarchicalModel(object):
 
 class HierarchicalStanModel(HierarchicalModel):
 
-    def __init__(self, X, subject_ids, subjectwise_errors=False, cauchy_priors=False, recompile=False):
+    def __init__(self, X, subject_ids, subjectwise_errors=False, cauchy_priors=False, recompile=False, model_code=None):
         
         super(HierarchicalStanModel, self).__init__(X, subject_ids, subjectwise_errors)
 
-        if subjectwise_errors:
-            fn_string = 'subjectwise_errors'
+        if model_code is not None:
+            fn_string = model_code
         else:
-            fn_string = 'groupwise_errors'
-        
-        if cauchy_priors:
-            fn_string += '_cauchy'
-        else:
-            fn_string += '_normal'
+            if subjectwise_errors:
+                fn_string = 'subjectwise_errors'
+            else:
+                fn_string = 'groupwise_errors'
+            
+            if cauchy_priors:
+                fn_string += '_cauchy'
+            else:
+                fn_string += '_normal'
 
 
         stan_model_fn_pkl = os.path.join(__dir__, 'stan_models', '%s.pkl' % fn_string)
