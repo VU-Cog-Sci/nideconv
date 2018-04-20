@@ -18,28 +18,18 @@ parameters {
 transformed parameters {
 
     matrix[j, m] beta_subject;
-
     for (i in 1:j)
         beta_subject[i, :] = beta_group + group_sd .* beta_subject_offset[i];
 
 }
 
 model {
-    matrix[n, m] beta;
-    vector[n] eps_samples;
-
-    for (i in 1:n)
-        beta[i, :] = beta_subject[subj_idx[i]];
-
-    for (i in 1:n)
-        eps_samples[i] = eps[subj_idx[i]];
 
     beta_group ~ normal(0, 10);
     group_sd ~ cauchy(0, 2.5);
 
     to_vector(beta_subject_offset) ~ normal(0, 1);
-
     eps ~ cauchy(0, 2.5);
 
-    measure ~ normal(rows_dot_product(X, beta), eps_samples);
+    measure ~ normal(rows_dot_product(X, beta_subject[subj_idx]), eps[subj_idx]);
 }

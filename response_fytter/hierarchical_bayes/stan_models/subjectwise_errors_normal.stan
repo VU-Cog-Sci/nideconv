@@ -25,15 +25,6 @@ transformed parameters {
 }
 
 model {
-    matrix[n, m] beta;
-    vector[n] eps_samples;
-
-    for (i in 1:n)
-        beta[i, :] = beta_subject[subj_idx[i]];
-
-    for (i in 1:n)
-        eps_samples[i] = eps[subj_idx[i]];
-
     beta_group ~ normal(0, 2.5);
     group_sd ~ normal(0, 2.5);
 
@@ -41,5 +32,5 @@ model {
 
     eps ~ normal(0, 2.5);
 
-    measure ~ normal(rows_dot_product(X, beta), eps_samples);
+    measure ~ normal(rows_dot_product(X, beta_subject[subj_idx]), eps[subj_idx]);
 }
