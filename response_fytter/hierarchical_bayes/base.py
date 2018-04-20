@@ -56,7 +56,25 @@ class HierarchicalBayesianModel(object):
 
     def sample(self, chains=1, iter=1000, init_ols=False, *args, **kwargs):
         self._model.sample(self.signal, chains=chains, iter=iter, init_ols=init_ols, *args, **kwargs)
-            
+
+
+    def get_mean_group_timecourse(self, melt=False):
+
+        traces = self.get_group_timecourse_traces()
+
+        if melt:
+            return traces.mean().to_frame('value')
+        else:
+            return traces.mean().to_frame('value').T
+
+    def get_mean_subject_timecourses(self, melt=False):
+        traces = self.get_subject_timecourse_traces()
+
+        if melt:
+            return traces.mean().to_frame('value')
+        else:
+            return traces.mean().to_frame('value').T
+
 
     def get_group_timecourse_traces(self, melt=False, n=None):
         traces = self._model.get_group_traces()
