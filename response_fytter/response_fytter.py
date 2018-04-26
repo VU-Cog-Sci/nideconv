@@ -33,7 +33,8 @@ class ResponseFytter(object):
 
         self.input_signal_time_points = np.linspace(0, (input_signal.shape[0]-1) *self.input_sample_duration, input_signal.shape[0]) 
 
-        self.input_signal = pd.DataFrame(input_signal, index=self.input_signal_time_points)
+        self.input_signal = pd.DataFrame(input_signal)
+        self.input_signal.index = self.input_signal_time_points
 
         self.X = pd.DataFrame(np.ones((self.input_signal.shape[0], 0)),
                               index=self.input_signal_time_points)
@@ -73,7 +74,15 @@ class ResponseFytter(object):
             self.X = pd.concat((self.X, regressor.X), 1)
 
 
-    def add_event(self, event_name, **kwargs):
+    def add_event(self,
+                  event_name,
+                  onset_times=None, 
+                  basis_set='fir', 
+                  interval=[0,10], 
+                  n_regressors=0, 
+                  durations=None, 
+                  covariates=None,
+                  **kwargs):
         """
         create design matrix for a given event type.
 
@@ -93,12 +102,21 @@ class ResponseFytter(object):
 
         assert event_name not in self.X.columns.get_level_values(0), "The event_name %s is already in use" % event_name
 
-        ev = Event(name=event_name, fitter=self, **kwargs)
+        ev = Event(name=event_name, 
+                   onset_times=onset_times,
+                   basis_set=basis_set,
+                   interval=interval,
+                   n_regressors=n_regressors,
+                   durations=durations,
+                   covariates=covariates,
+                   fitter=self,
+                   **kwargs)
+
         self._add_regressor(ev)
 
         self.events[event_name] = ev
 
-    def regress(self, type='ols', cv=20, alphas=None):
+    def regress(self, type='ols', cv=20, alphas=None, store_residuals=False):
         """
         regress a created design matrix on the input_data, creating internal
         variables betas, residuals, rank and s. 
@@ -116,13 +134,17 @@ class ResponseFytter(object):
             self.betas, self.ssquares, self.rank, self.s = \
                                 np.linalg.lstsq(self.X, self.input_signal, rcond=None)
             self._send_betas_to_regressors()
-            self.residuals = self.input_signal.values.ravel() - self.predict_from_design_matrix().values.ravel()
-            self.residuals = pd.Series(self.residuals, index=self.input_signal_time_points)
+
+            if store_residuals:
+                self.residuals = self.input_signal - self.predict_from_design_matrix()
+
         elif type == 'ridge':   # betas and residuals are internalized by ridge_regress
-            self.ridge_regress(cv=cv, alphas=alphas)
+            if self.input_signal.shape[1] > 1:
+                raise NotImplementedError('No support for multidimensional signals yet')
+            self.ridge_regress(cv=cv, alphas=alphas, store_residuals=store_residuals)
 
 
-    def ridge_regress(self, cv=20, alphas=None):
+    def ridge_regress(self, cv=20, alphas=None, store_residuals=False):
         """
         run CV ridge regression instead of ols fit. Uses sklearn's RidgeCV class
 
@@ -143,16 +165,20 @@ class ResponseFytter(object):
         self.rcv.fit(self.X, self.input_signal)
 
         self.betas = self.rcv.coef_.T
-        self.residuals = self.input_signal - self.rcv.predict(self.X)
+
+        if store_residuals:
+            self.residuals = self.input_signal - self.rcv.predict(self.X)
 
         self._send_betas_to_regressors()
 
     def _send_betas_to_regressors(self):
-        self.betas = pd.Series(self.betas.ravel(), index=self.X.columns)
-        self.betas.index.set_names(['event type','covariate', 'regressor'], inplace=True)
+        self.betas = pd.DataFrame(self.betas, 
+                                  index=self.X.columns,
+                                  columns=self.input_signal.columns)
+        #self.betas.index.set_names(['event_type','covariate', 'regressor'], inplace=True)
 
         for key in self.events:
-            self.events[key].betas = self.betas[key]
+            self.events[key].betas = self.betas.loc[[key]]
 
     def predict_from_design_matrix(self, X=None):
         """
@@ -175,7 +201,8 @@ class ResponseFytter(object):
                     as the betas already calculated"""
 
 
-        prediction = pd.Series(np.dot(self.betas, X.T), index=self.input_signal_time_points)
+        #prediction = pd.Series(np.dot(self.betas, X.T), index=self.input_signal_time_points)
+        prediction = self.X.dot(self.betas)
 
         return prediction
 
@@ -187,10 +214,7 @@ class ResponseFytter(object):
 
         for event_type in self.events:
             tc = self.events[event_type].get_timecourses()
-            tc['event type'] = event_type
-            timecourses = pd.concat((timecourses, tc), ignore_index=True)
-
-        timecourses.set_index(['event type', 'covariate', 't'], inplace=True)
+            timecourses = pd.concat((timecourses, tc), ignore_index=False)
 
         return timecourses
 

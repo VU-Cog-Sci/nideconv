@@ -18,22 +18,23 @@ def _create_fir_basis(timepoints, n_regressors):
 
 def _create_fourier_basis(timepoints, n_regressors):
     """"""
-    L_fourier = np.zeros((n_regressors, len(timepoints)))
-    L_fourier[0,:] = 1
+    L_fourier = np.zeros((len(timepoints), n_regressors))
+    L_fourier[:,0] = 1
 
     for r in range(int(n_regressors/2)):
         x = np.linspace(0, 2.0*np.pi*(r+1), len(timepoints))
-    #     sin_regressor 
-        L_fourier[1+r,:] = np.sqrt(2) * np.sin(x)
-    #     cos_regressor 
-        L_fourier[1+r+int(n_regressors/2),:] = np.sqrt(2) * np.cos(x)
+        #     sin_regressor 
+        L_fourier[:, 1+r] = np.sqrt(2) * np.sin(x)
+
+        #     cos_regressor 
+        L_fourier[:, 1+r+int(n_regressors/2)] = np.sqrt(2) * np.cos(x)
 
     return L_fourier
 
 def _create_legendre_basis(timepoints, n_regressors):
     """"""
     x = np.linspace(-1, 1, len(timepoints), endpoint=True)
-    L_legendre = np.polynomial.legendre.legval(x=x, c=np.eye(n_regressors))
+    L_legendre = np.polynomial.legendre.legval(x=x, c=np.eye(n_regressors)).T
 
     return L_legendre
 
@@ -55,17 +56,12 @@ class Confound(Regressor):
     def __init__(self, name, fitter, confounds):
         
         super(Confound, self).__init__(name, fitter)
-
-        if confounds.ndim == 1:
-            self.confounds = confounds[np.newaxis, :]
-        else:
-            self.confounds = confounds
-
-        self.confounds = pd.DataFrame(self.confounds)
+        self.confounds = pd.DataFrame(confounds)
 
     def create_design_matrix(self):
         self.X = self.confounds
-        self.X.columns = pd.MultiIndex.from_product([['confounds'], [self.name], self.X.columns])
+        self.X.columns = pd.MultiIndex.from_product([['confounds'], [self.name], self.X.columns],
+                                                    names=['event type', 'covariate', 'regressor'])
         self.X.set_index(self.fitter.input_signal_time_points, inplace=True)
         self.X.index.rename('t', inplace=True)
 
@@ -74,7 +70,8 @@ class Intercept(Confound):
     def __init__(self,
                  name,
                  fitter):
-        confound = pd.DataFrame(np.ones(fitter.input_signal.shape[0]), columns=['intercept'])
+        confound = pd.DataFrame(np.ones(len(fitter.input_signal)),
+                                columns=['intercept'])
         super(Intercept, self).__init__(name, fitter, confound)
 
 
@@ -201,6 +198,10 @@ class Event(Regressor):
             self.L = basis_set
             self.n_regressors = self.L.shape[0]
             self.regressor_labels = ['custom_basis_set_%d' % i for i in range(1, self.L.shape[0] + 1)]
+        
+        self.L = pd.DataFrame(self.L,
+                              columns=pd.Index(self.regressor_labels, name='basis_function'),
+                              index=pd.Index(self.timepoints, name='time'))
 
         # perhaps for covariance matrix fitting, later:
         self.C = self.C_I = np.eye(self.L.shape[0])
@@ -249,15 +250,18 @@ class Event(Regressor):
 
         # create empty design matrix
         self.X = np.zeros((self.fitter.input_signal.shape[0], self.n_regressors * self.covariates.shape[1] ))
-        columns = pd.MultiIndex.from_product(([self.name], self.covariates.columns, self.regressor_labels))
-        self.X = pd.DataFrame(self.X, columns=columns, index=self.fitter.input_signal_time_points)
+        columns = pd.MultiIndex.from_product(([self.name], self.covariates.columns, self.regressor_labels),
+                                             names=['event_type', 'covariate', 'regressor'])
+        self.X = pd.DataFrame(self.X,
+                              columns=columns,
+                              index=self.fitter.input_signal_time_points)
         self.X.index.rename('t', inplace=True)
         
         for covariate in self.covariates.columns:
             event_timepoints = self.event_timecourse(covariate=covariate)
 
-            for r, regressor in enumerate(self.regressor_labels):
-                self.X[self.name, covariate, regressor] = sp.signal.convolve(event_timepoints, self.L[r], 'full')[:self.fitter.input_signal.shape[0]]
+            for regressor in self.L.columns:
+                self.X[self.name, covariate, regressor] = sp.signal.convolve(event_timepoints, self.L[regressor], 'full')[:self.fitter.input_signal.shape[0]]
 
 
     def get_timecourses(self):
@@ -269,16 +273,8 @@ class Event(Regressor):
         """        
         assert hasattr(self, 'betas'), 'no betas found, please run regression before rsq'
 
-        x = self.betas.to_frame().reset_index().rename(columns={0:'beta'})
-
-        timecourses = x.groupby('covariate').beta.apply(lambda beta: pd.Series(beta.dot(self.L), index=self.timepoints)).reset_index()
+        return self.betas.groupby(level=['event type', 'covariate']).apply(_dotproduct_timecourse, self.L)
         
-        if timecourses.shape[1] == 2:
-            assert(self.covariates.shape[1] == 1)
-            timecourses.columns = ['t', 'signal']
-            timecourses.insert(0, 'covariate', self.covariates.columns[0])
-        else:
-            timecourses.columns = ['covariate', 't', 'signal']
 
-        return timecourses
-
+def _dotproduct_timecourse(d, L):
+    return L.dot(d.reset_index(level=['event type', 'covariate'], drop=True))
