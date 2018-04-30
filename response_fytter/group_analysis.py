@@ -14,8 +14,10 @@ class GroupResponseFytter(object):
                  *args,
                  **kwargs):
 
-        self.timeseries = timeseries.reset_index()
-        self.onsets = behavior.reset_index()
+        timeseries = pd.DataFrame(timeseries)
+
+        self.timeseries = timeseries
+        self.onsets = behavior
         self.confounds = confounds
 
         if 'trial_type' not in self.onsets:
@@ -30,17 +32,20 @@ class GroupResponseFytter(object):
         self.timeseries['t'] = self.timeseries.groupby(self.index_columns).apply(_make_time_column, 
                                                                                  input_sample_rate)
 
+
         self.response_fitters = []
 
         if self.index_columns is []:
-            self.index_columns = None
-            self.response_fitters = [ResponseFytter(self.timeseries,
-                                                   input_sample_rate,
-                                                   *args,
-                                                   **kwargs)]
+            raise Exception('GroupResponseFytter is only to be used for datasets with multiple subjects'
+                             'or runs')
         else:
             self.timeseries.set_index(self.index_columns + ['t'], inplace=True)
             self.onsets.set_index(self.index_columns + ['trial_type'], inplace=True)
+
+            if self.confounds is not None:
+                self.confounds['t'] = self.confounds.groupby(self.index_columns).apply(_make_time_column, 
+                                                                                       input_sample_rate)
+                self.confounds.set_index(self.index_columns + ['t'], inplace=True)
 
             for idx, ts in self.timeseries.groupby(level=self.index_columns):
                 rf = ResponseFytter(ts,
@@ -48,6 +53,8 @@ class GroupResponseFytter(object):
                                     *args,
                                     **kwargs)
                 self.response_fitters.append(rf)
+                if self.confounds is not None:
+                    self.response_fitters[-1].add_confounds('confounds', self.confounds.loc[idx])
 
 
     def add_event(self,
@@ -73,7 +80,9 @@ class GroupResponseFytter(object):
                 if type(col) is not tuple:
                     col = (col,)
 
-                if covariates is not None:
+                if covariates is None:
+                    covariate_matrix = None
+                else:
                     covariate_matrix = self.onsets.loc[col + (e,), covariates]
 
                     if add_intercept:
@@ -81,8 +90,6 @@ class GroupResponseFytter(object):
                                                         columns=['intercept'],
                                                         index=covariate_matrix.index)
                         covariate_matrix = pd.concat((intercept_matrix, covariate_matrix), 1)
-                else:
-                    covariate_matrix = None
 
                 self.response_fitters[i].add_event(e,
                                                    onset_times=self.onsets.loc[col + (e,), 'onset'],
