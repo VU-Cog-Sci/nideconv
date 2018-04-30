@@ -139,6 +139,34 @@ class GroupResponseFytter(object):
         else:
             return tc
 
+    def get_conditionwise_timecourses(self, kind='mean'):
+
+        subj_tc = self.get_subjectwise_timecourses()
+
+        if kind == 'mean':
+            return subj_tc.groupby(level=['event type', 'covariate', 'time']).mean()
+
+        else:
+            t = (self.get_timecourses()
+                     .groupby(level=['event type', 'covariate', 'time'])
+                     .apply(lambda d: pd.Series(sp.stats.ttest_1samp(d, 0, 0)[0], index=d.columns)
+                     .T)
+                 )
+
+            if kind =='t':
+                return t
+
+            elif kind == 'z':
+                t_dist = sp.stats.t(len(self.timeseries.get_level_values('subj_idx')
+                                                       .unique()))
+                norm_dist = sp.stats.norm()
+
+                return pd.DataFrame(norm_dist.ppf(t_dist.cdf(t)),
+                                    columns=t.columns,
+                                    index=t.index)
+            else:
+                raise NotImplementedError("kind should be 'mean', 't', or 'z'")
+
     def plot_groupwise_timecourses(self,
                                    plots='signal',
                                    col='covariate',
