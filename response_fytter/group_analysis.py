@@ -172,5 +172,5 @@ class GroupResponseFytter(object):
         return fac
 
 def _make_time_column(d, sample_rate):
-    return pd.DataFrame(np.arange(0, len(d) * sample_rate, sample_rate), index=d.index)
+    return pd.DataFrame(np.arange(0, len(d) * 1./sample_rate, 1./sample_rate), index=d.index)
 
