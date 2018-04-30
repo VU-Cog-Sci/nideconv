@@ -18,8 +18,8 @@ class GroupResponseFytter(object):
         self.onsets = behavior.reset_index()
         self.confounds = confounds
 
-        if 'condition' not in self.onsets:
-            self.onsets['condition'] = 'intercept'
+        if 'trial_type' not in self.onsets:
+            self.onsets['trial_type'] = 'intercept'
 
         self.index_columns = []
 
@@ -40,7 +40,7 @@ class GroupResponseFytter(object):
                                                    **kwargs)]
         else:
             self.timeseries.set_index(self.index_columns + ['t'], inplace=True)
-            self.onsets.set_index(self.index_columns + ['condition'], inplace=True)
+            self.onsets.set_index(self.index_columns + ['trial_type'], inplace=True)
 
             for idx, ts in self.timeseries.groupby(level=self.index_columns):
                 rf = ResponseFytter(ts,
@@ -60,7 +60,7 @@ class GroupResponseFytter(object):
                  **kwargs):
 
         if event is None:
-            event = self.onsets.index.get_level_values('condition').unique()
+            event = self.onsets.index.get_level_values('trial_type').unique()
         if event is str:
             event = [event]
 
@@ -163,10 +163,6 @@ class GroupResponseFytter(object):
                               **kwargs)
 
         return fac
-
-
-
-
 
 def _make_time_column(d, sample_rate):
     return pd.DataFrame(np.arange(0, len(d) * sample_rate, sample_rate), index=d.index)
