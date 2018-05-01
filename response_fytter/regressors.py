@@ -86,7 +86,7 @@ class Confound(Regressor):
         self.X = self.confounds
         self.X.columns = pd.MultiIndex.from_product([['confounds'], [self.name], self.X.columns],
                                                     names=['event type', 'covariate', 'regressor'])
-        self.X.set_index(self.fitter.design_matrix_time_points, inplace=True)
+        self.X.set_index(self.fitter.input_signal.index, inplace=True)
         self.X.index.rename('time', inplace=True)
 
 class Intercept(Confound):
@@ -95,7 +95,7 @@ class Intercept(Confound):
                  name,
                  fitter):
 
-        confound = pd.DataFrame(np.ones(len(fitter.design_matrix_time_points)),
+        confound = pd.DataFrame(np.ones(len(fitter.input_signal)),
                                 columns=['intercept'])
         super(Intercept, self).__init__(name, fitter, confound)
 
@@ -160,8 +160,8 @@ class Event(Regressor):
         self.durations = durations
 
         self.interval_duration = self.interval[1] - self.interval[0]
-        self.sample_duration = self.fitter.input_sample_duration
-        self.sample_rate = self.fitter.input_sample_frequency
+        self.sample_duration = self.fitter.sample_duration
+        self.sample_rate = self.fitter.sample_rate
 
         # Check whether the interval is proper
         if ~np.isclose(self.interval_duration % self.sample_duration, 0):
@@ -256,10 +256,14 @@ class Event(Regressor):
 
         columns = pd.MultiIndex.from_product(([self.name], self.covariates.columns, L.columns),
                                              names=['event_type', 'covariate', 'regressor'])
+        oversampled_timepoints = np.linspace(0, 
+                                             self.fitter.input_signal.shape[0] * self.sample_duration, 
+                                             self.fitter.input_signal.shape[0] * oversample,
+                                             endpoint=False) 
 
         self.X = pd.DataFrame(self.X,
                               columns=columns,
-                              index=self.fitter.X.index)
+                              index=oversampled_timepoints)
         
 
         for covariate in self.covariates.columns:
@@ -269,7 +273,9 @@ class Event(Regressor):
             for regressor in L.columns:
                 self.X[self.name, covariate, regressor] = sp.signal.convolve(event_timepoints,
                                                                              L[regressor],
-                                                                             'full')[:self.fitter.X.shape[0]]
+                                                                             'full')[:len(self.X)]
+        if oversample != 1:
+            self.downsample_design_matrix()
 
 
     def get_timecourses(self, oversample=1):
@@ -293,7 +299,7 @@ class Event(Regressor):
                                self.interval[1] + (1./self.sample_rate/oversample), 
                                1./self.sample_rate / oversample) 
 
-        # only for fir, the nr of regressors is dictated by the interval and sample frequency
+        # only for fir, the nr of regressors is dictated by the interval and sample rate
         if type(self.basis_set) is str:
 
             if self.basis_set == 'fir':
@@ -318,6 +324,13 @@ class Event(Regressor):
 
         return L
         
+    def downsample_design_matrix(self):
+        interp = sp.interpolate.interp1d(self.X.index, self.X.values, axis=0)
+        X_ = interp(self.fitter.input_signal.index)
+        self.X = pd.DataFrame(X_,
+                              columns=self.X.columns,
+                              index=self.fitter.input_signal.index)
+
 
 def _dotproduct_timecourse(d, L):
     return L.dot(d.reset_index(level=['event type', 'covariate'], drop=True))

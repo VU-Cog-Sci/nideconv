@@ -11,7 +11,7 @@ class ResponseFytter(object):
     see Event."""
     def __init__(self,
                  input_signal,
-                 input_sample_frequency,
+                 sample_rate,
                  oversample_design_matrix=20,
                  add_intercept=True, **kwargs):
         """ Initialize a ResponseFytter object.
@@ -23,7 +23,7 @@ class ResponseFytter(object):
             sampled at the frequency at which we would 
             like to conduct this analysis
 
-        input_sample_frequency : float
+        sample_rate : float
             frequency in Hz at which input data are sampled
 
         **kwargs : dict
@@ -32,29 +32,22 @@ class ResponseFytter(object):
         super(ResponseFytter, self).__init__()
         self.__dict__.update(kwargs)
 
-        self.input_sample_frequency = input_sample_frequency
-        self.input_sample_duration = 1.0/self.input_sample_frequency
+        self.sample_rate = sample_rate
+        self.sample_duration = 1.0/self.sample_rate
 
         self.oversample_design_matrix = oversample_design_matrix
 
         self.input_signal_time_points = np.linspace(0, 
-                                                    input_signal.shape[0] * self.input_sample_duration, 
+                                                    input_signal.shape[0] * self.sample_duration, 
                                                     input_signal.shape[0],
                                                     endpoint=False) 
-
-        self.design_matrix_time_points = np.linspace(0, 
-                                                     input_signal.shape[0] * self.input_sample_duration, 
-                                                     input_signal.shape[0] * oversample_design_matrix,
-                                                     endpoint=False) 
 
         self.input_signal = pd.DataFrame(input_signal)
         self.input_signal.index = pd.Index(self.input_signal_time_points,
                                            name='time')
 
 
-        self.X = pd.DataFrame(np.ones((len(self.input_signal) * oversample_design_matrix,
-                                       0)),
-                              index=self.design_matrix_time_points)
+        self.X = pd.DataFrame(index=self.input_signal.index)
 
         if add_intercept:
             self.add_intercept()
@@ -82,8 +75,9 @@ class ResponseFytter(object):
         self._add_regressor(confound)
 
 
-    def _add_regressor(self, regressor):
-        regressor.create_design_matrix(oversample=self.oversample_design_matrix)
+    def _add_regressor(self, regressor, oversample=1):
+        regressor.create_design_matrix(oversample=oversample)
+
         if self.X.shape[1] == 0:
             self.X = pd.concat((regressor.X, self.X), 1)
         else:
@@ -133,13 +127,6 @@ class ResponseFytter(object):
         self.events[event_name] = ev
 
 
-    def get_resampled_X(self):
-        if self.oversample_design_matrix == 1:
-            return self.X
-        else:
-            interp = sp.interpolate.interp1d(self.X.index, self.X.values, axis=0)
-            return interp(self.input_signal_time_points)
-
 
     def regress(self, type='ols', cv=20, alphas=None, store_residuals=False):
         """
@@ -155,10 +142,9 @@ class ResponseFytter(object):
             'ridge' for CV ridge regression.
 
         """
-        X = self.get_resampled_X()
         if type == 'ols':
             self.betas, self.ssquares, self.rank, self.s = \
-                                np.linalg.lstsq(X, self.input_signal, rcond=None)
+                                np.linalg.lstsq(self.X, self.input_signal, rcond=None)
             self._send_betas_to_regressors()
 
             if store_residuals:
@@ -229,7 +215,6 @@ class ResponseFytter(object):
                     as the betas already calculated"""
 
 
-        #prediction = pd.Series(np.dot(self.betas, X.T), index=self.input_signal_time_points)
         prediction = self.X.dot(self.betas)
 
         return prediction
@@ -292,7 +277,7 @@ class ResponseFytter(object):
         indices = np.array([signal.index.get_loc(onset, method='nearest') for onset in onsets + interval[0]])
         
         interval_duration = interval[1] - interval[0]
-        interval_n_samples = int(interval_duration * self.input_sample_frequency) + 1
+        interval_n_samples = int(interval_duration * self.sample_rate) + 1
         
         indices = np.tile(indices[:, np.newaxis], (1, interval_n_samples)) + np.arange(interval_n_samples)
         

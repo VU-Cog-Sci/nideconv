@@ -48,7 +48,7 @@ class GroupResponseFytter(object):
             if self.confounds is not None:
                 self.confounds['t'] = self.confounds.groupby(self.index_columns).apply(_make_time_column, 
                                                                                        input_sample_rate)
-                self.confounds.set_index(self.index_columns + ['t'], inplace=True)
+                self.confounds = self.confounds.set_index(self.index_columns + ['t'])
 
             for idx, ts in self.timeseries.groupby(level=self.index_columns):
                 rf = ResponseFytter(ts,
