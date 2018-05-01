@@ -39,8 +39,8 @@ class GroupResponseFytter(object):
             raise Exception('GroupResponseFytter is only to be used for datasets with multiple subjects'
                              'or runs')
         else:
-            self.timeseries.set_index(self.index_columns + ['t'], inplace=True)
-            self.onsets.set_index(self.index_columns + ['trial_type'], inplace=True)
+            self.timeseries = self.timeseries.set_index(self.index_columns + ['t'])
+            self.onsets = self.onsets.set_index(self.index_columns + ['trial_type'])
 
             if self.confounds is not None:
                 self.confounds['t'] = self.confounds.groupby(self.index_columns).apply(_make_time_column, 
