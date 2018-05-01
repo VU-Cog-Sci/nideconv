@@ -10,6 +10,7 @@ def simulate_fmri_experiment(conditions=None,
                              n_runs=1, 
                              n_trials=40, 
                              run_duration=300,
+                             oversample=20,
                              kernel='double_hrf'):
     """
     This function simulates an fMRI experiment. 
@@ -42,10 +43,10 @@ def simulate_fmri_experiment(conditions=None,
         for condition in conditions:
             amplitude = sp.stats.norm(loc=condition['mu_group'], scale=condition['std_group']).rvs()
             parameters.append({'subj_idx':subj_idx,
-                               'condition':condition['name'],
+                               'trial_type':condition['name'],
                                'amplitude':amplitude})    
             
-    parameters = pd.DataFrame(parameters).set_index(['subj_idx', 'condition'])
+    parameters = pd.DataFrame(parameters).set_index(['subj_idx', 'trial_type'])
     
     for subj_idx in np.arange(1, n_subjects+1):    
         
@@ -71,10 +72,9 @@ def simulate_fmri_experiment(conditions=None,
                 all_onsets.append(pd.DataFrame({'onset':onsets}))
                 all_onsets[-1]['subj_idx'] = subj_idx
                 all_onsets[-1]['run'] = run
-                all_onsets[-1]['condition'] = name
+                all_onsets[-1]['trial_type'] = name
                 
                 
-
             signal = signals.sum(0)
             signal = convolve_with_function(signal, kernel, sample_rate)
             signal += np.random.randn(len(signal))
@@ -89,20 +89,26 @@ def simulate_fmri_experiment(conditions=None,
             
     data = pd.concat(data).set_index(['subj_idx', 'run', 't'])
     
-    onsets = pd.concat(all_onsets).set_index(['subj_idx', 'run', 'condition'])
+    onsets = pd.concat(all_onsets).set_index(['subj_idx', 'run', 'trial_type'])
     
     return data, onsets, parameters
 
-def convolve_with_function(input, function, signal_samplerate, interval=(0, 20), *args, **kwargs):
+def convolve_with_function(input,
+                           function,
+                           signal_samplerate,
+                           interval=(0, 20),
+                           oversample=20,
+                           *args, **kwargs):
     
     if function == 'double_hrf':
         function = double_gamma_with_d
     
-    new_sample_rate = 20*signal_samplerate
+    new_sample_rate = oversample * signal_samplerate
     
     duration = interval[1] - interval[0]
     
-    t = np.linspace(*interval, new_sample_rate*duration)
+    t = np.linspace(*interval, 
+                    new_sample_rate*duration)
     
     f = function(t, *args, **kwargs)
     

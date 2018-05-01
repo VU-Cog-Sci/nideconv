@@ -12,13 +12,32 @@ import pandas as pd
 import warnings
 from .utils import get_proper_interval
 
-def _create_fir_basis(timepoints, n_regressors):
+def _create_fir_basis(interval, sample_rate, n_regressors, oversample=1):
     """"""
-    return np.eye(n_regressors)
+    basis = np.eye(n_regressors)    
+    basis_timepoints = np.linspace(interval[0], interval[1], n_regressors)
 
-def _create_fourier_basis(timepoints, n_regressors):
+    timepoints = np.arange(interval[0], 
+                           interval[1] + (1./sample_rate/oversample), 
+                           1./sample_rate / oversample) 
+
+    rescaled_basis = np.zeros((len(timepoints), n_regressors))    
+
+
+    for reg in range(n_regressors):
+        rescaled_basis[:, reg] = np.interp(timepoints, basis_timepoints, basis[:, reg])
+        
+    return rescaled_basis
+
+def _create_fourier_basis(interval, sample_rate, n_regressors, oversample=1):
     """"""
+    
+    timepoints = np.arange(interval[0], 
+                           interval[1] + (1./sample_rate/oversample), 
+                           1./sample_rate / oversample) 
+    
     L_fourier = np.zeros((len(timepoints), n_regressors))
+    
     L_fourier[:,0] = 1
 
     for r in range(int(n_regressors/2)):
@@ -31,12 +50,17 @@ def _create_fourier_basis(timepoints, n_regressors):
 
     return L_fourier
 
-def _create_legendre_basis(timepoints, n_regressors):
+def _create_legendre_basis(interval, sample_rate, n_regressors, oversample=1):
     """"""
-    x = np.linspace(-1, 1, len(timepoints), endpoint=True)
+    timepoints = np.arange(interval[0],
+                           interval[1] + (1./sample_rate/oversample),
+                           1./sample_rate / oversample)    
+
+    x = np.linspace(-1, 1, len(timepoints) * oversample, endpoint=True)
     L_legendre = np.polynomial.legendre.legval(x=x, c=np.eye(n_regressors)).T
 
     return L_legendre
+
 
 class Regressor(object):
 
