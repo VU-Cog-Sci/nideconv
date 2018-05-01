@@ -109,7 +109,7 @@ class Event(Regressor):
                 fitter,
                 basis_set='fir', 
                 interval=[0,10], 
-                n_regressors=0, 
+                n_regressors=None, 
                 onset_times=None, 
                 durations=None, 
                 covariates=None):
