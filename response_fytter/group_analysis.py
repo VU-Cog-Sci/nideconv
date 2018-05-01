@@ -10,6 +10,7 @@ class GroupResponseFytter(object):
                  timeseries,
                  behavior,
                  input_sample_rate,
+                 oversample_design_matrix=20,
                  confounds=None,
                  *args,
                  **kwargs):
@@ -19,6 +20,8 @@ class GroupResponseFytter(object):
         self.timeseries = timeseries
         self.onsets = behavior
         self.confounds = confounds
+
+        self.oversample_design_matrix = oversample_design_matrix
 
         if 'trial_type' not in self.onsets:
             self.onsets['trial_type'] = 'intercept'
@@ -50,6 +53,7 @@ class GroupResponseFytter(object):
             for idx, ts in self.timeseries.groupby(level=self.index_columns):
                 rf = ResponseFytter(ts,
                                     input_sample_rate,
+                                    self.oversample_design_matrix,
                                     *args,
                                     **kwargs)
                 self.response_fitters.append(rf)
@@ -61,7 +65,7 @@ class GroupResponseFytter(object):
                  event=None,
                  basis_set='fir', 
                  interval=[0,10], 
-                 n_regressors=0, 
+                 n_regressors=None, 
                  covariates=None,
                  add_intercept=True,
                  **kwargs):
@@ -99,19 +103,22 @@ class GroupResponseFytter(object):
                                                    covariates=covariate_matrix)
 
 
-
     def fit(self):
         for response_fitter in self.response_fitters:
             response_fitter.regress()
 
-    def get_timecourses(self):
+    def get_timecourses(self, oversample=None):
+
+        if oversample is None:
+            oversample = self.oversample_design_matrix
+
         df = []
         for i, (col, ts) in self._groupby_ts():
 
             if type(col) is not tuple:
                 col = (col,)
 
-            tc = self.response_fitters[i].get_timecourses()
+            tc = self.response_fitters[i].get_timecourses(oversample)
 
             for ic, value in zip(self.index_columns, col):
                 tc[ic] = value
@@ -125,8 +132,11 @@ class GroupResponseFytter(object):
         return enumerate(self.timeseries.groupby(level=self.index_columns))
 
 
-    def get_subjectwise_timecourses(self, melt=False):
-        tc = self.get_timecourses()
+    def get_subjectwise_timecourses(self, 
+                                    oversample=None, 
+                                    melt=False):
+
+        tc = self.get_timecourses(oversample=oversample)
         tc = tc.reset_index().groupby(['subj_idx', 'event type','covariate', 'time', ]).mean()
 
         for c in self.index_columns:
@@ -139,15 +149,17 @@ class GroupResponseFytter(object):
         else:
             return tc
 
-    def get_conditionwise_timecourses(self, kind='mean'):
+    def get_conditionwise_timecourses(self,
+                                      oversample=None,
+                                      kind='mean'):
 
-        subj_tc = self.get_subjectwise_timecourses()
+        subj_tc = self.get_subjectwise_timecourses(oversample)
 
         if kind == 'mean':
             return subj_tc.groupby(level=['event type', 'covariate', 'time']).mean()
 
         else:
-            t = (self.get_timecourses()
+            t = (self.get_timecourses(oversample)
                      .groupby(level=['event type', 'covariate', 'time'])
                      .apply(lambda d: pd.Series(sp.stats.ttest_1samp(d, 0, 0)[0], index=d.columns)
                      .T)
@@ -174,9 +186,12 @@ class GroupResponseFytter(object):
                                    col_wrap=None,
                                    hue='event type',
                                    max_n_plots=40,
+                                   oversample=None,
                                    *args,
                                    **kwargs):
-        tc = self.get_subjectwise_timecourses(melt=True)
+
+        tc = self.get_subjectwise_timecourses(oversample=oversample,
+                                              melt=True)
 
         
         if len(tc[plots].unique()) > max_n_plots:

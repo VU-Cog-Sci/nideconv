@@ -2,13 +2,18 @@ from .regressors import Event, Confound, Intercept
 import numpy as np
 import pandas as pd
 from sklearn import linear_model
+import scipy as sp
 
 class ResponseFytter(object):
     """ResponseFytter takes an input signal and performs deconvolution on it. 
     To do this, it requires event times, and possible covariates.
     ResponseFytter can, for each event type, use different basis function sets,
     see Event."""
-    def __init__(self, input_signal, input_sample_frequency, add_intercept=True, **kwargs):
+    def __init__(self,
+                 input_signal,
+                 input_sample_frequency,
+                 oversample_design_matrix=20,
+                 add_intercept=True, **kwargs):
         """ Initialize a ResponseFytter object.
 
         Parameters
@@ -28,17 +33,28 @@ class ResponseFytter(object):
         self.__dict__.update(kwargs)
 
         self.input_sample_frequency = input_sample_frequency
-
         self.input_sample_duration = 1.0/self.input_sample_frequency
 
-        self.input_signal_time_points = np.linspace(0, (input_signal.shape[0]-1) *self.input_sample_duration, input_signal.shape[0]) 
+        self.oversample_design_matrix = oversample_design_matrix
+
+        self.input_signal_time_points = np.linspace(0, 
+                                                    input_signal.shape[0] * self.input_sample_duration, 
+                                                    input_signal.shape[0],
+                                                    endpoint=False) 
+
+        self.design_matrix_time_points = np.linspace(0, 
+                                                     input_signal.shape[0] * self.input_sample_duration, 
+                                                     input_signal.shape[0] * oversample_design_matrix,
+                                                     endpoint=False) 
 
         self.input_signal = pd.DataFrame(input_signal)
-        self.input_signal.index = self.input_signal_time_points
+        self.input_signal.index = pd.Index(self.input_signal_time_points,
+                                           name='time')
 
-        self.X = pd.DataFrame(np.ones((self.input_signal.shape[0], 0)),
-                              index=self.input_signal_time_points)
-        self.X.index.rename('t', inplace=True)
+
+        self.X = pd.DataFrame(np.ones((len(self.input_signal) * oversample_design_matrix,
+                                       0)),
+                              index=self.design_matrix_time_points)
 
         if add_intercept:
             self.add_intercept()
@@ -66,8 +82,8 @@ class ResponseFytter(object):
         self._add_regressor(confound)
 
 
-    def _add_regressor(self, regressor):        
-        regressor.create_design_matrix()
+    def _add_regressor(self, regressor):
+        regressor.create_design_matrix(oversample=self.oversample_design_matrix)
         if self.X.shape[1] == 0:
             self.X = pd.concat((regressor.X, self.X), 1)
         else:
@@ -79,7 +95,7 @@ class ResponseFytter(object):
                   onset_times=None, 
                   basis_set='fir', 
                   interval=[0,10], 
-                  n_regressors=0, 
+                  n_regressors=None, 
                   durations=None, 
                   covariates=None,
                   **kwargs):
@@ -116,6 +132,15 @@ class ResponseFytter(object):
 
         self.events[event_name] = ev
 
+
+    def get_resampled_X(self):
+        if self.oversample_design_matrix == 1:
+            return self.X
+        else:
+            interp = sp.interpolate.interp1d(self.X.index, self.X.values, axis=0)
+            return interp(self.input_signal_time_points)
+
+
     def regress(self, type='ols', cv=20, alphas=None, store_residuals=False):
         """
         regress a created design matrix on the input_data, creating internal
@@ -130,9 +155,10 @@ class ResponseFytter(object):
             'ridge' for CV ridge regression.
 
         """
+        X = self.get_resampled_X()
         if type == 'ols':
             self.betas, self.ssquares, self.rank, self.s = \
-                                np.linalg.lstsq(self.X, self.input_signal, rcond=None)
+                                np.linalg.lstsq(X, self.input_signal, rcond=None)
             self._send_betas_to_regressors()
 
             if store_residuals:
@@ -157,17 +183,19 @@ class ResponseFytter(object):
             the alpha/lambda values to try out in the CV ridge regression
 
         """        
+
+        X = self.get_resampled_X()
         if alphas is None:
             alphas = np.logspace(7, 0, 20)
         self.rcv = linear_model.RidgeCV(alphas=alphas, 
                 fit_intercept=False, 
                 cv=cv) 
-        self.rcv.fit(self.X, self.input_signal)
+        self.rcv.fit(X, self.input_signal)
 
         self.betas = self.rcv.coef_.T
 
         if store_residuals:
-            self.residuals = self.input_signal - self.rcv.predict(self.X)
+            self.residuals = self.input_signal - self.rcv.predict(X)
 
         self._send_betas_to_regressors()
 
@@ -207,13 +235,17 @@ class ResponseFytter(object):
         return prediction
 
 
-    def get_timecourses(self):
+    def get_timecourses(self, 
+                        oversample=None):
         assert hasattr(self, 'betas'), 'no betas found, please run regression before prediction'
+
+        if oversample is None:
+            oversample = self.oversample_design_matrix
 
         timecourses = pd.DataFrame()
 
         for event_type in self.events:
-            tc = self.events[event_type].get_timecourses()
+            tc = self.events[event_type].get_timecourses(oversample=oversample)
             timecourses = pd.concat((timecourses, tc), ignore_index=False)
 
         return timecourses
@@ -249,7 +281,7 @@ class ResponseFytter(object):
         
         # If no other events are defined, no need to regress them out
         if self.X.shape[1] == 0:
-            signal - self.input_signal
+            signal = self.input_signal
         else:
             self.regress()
             signal = self.residuals

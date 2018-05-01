@@ -82,19 +82,20 @@ class Confound(Regressor):
         super(Confound, self).__init__(name, fitter)
         self.confounds = pd.DataFrame(confounds)
 
-    def create_design_matrix(self):
+    def create_design_matrix(self, oversample=1):
         self.X = self.confounds
         self.X.columns = pd.MultiIndex.from_product([['confounds'], [self.name], self.X.columns],
                                                     names=['event type', 'covariate', 'regressor'])
-        self.X.set_index(self.fitter.input_signal_time_points, inplace=True)
-        self.X.index.rename('t', inplace=True)
+        self.X.set_index(self.fitter.design_matrix_time_points, inplace=True)
+        self.X.index.rename('time', inplace=True)
 
 class Intercept(Confound):
 
     def __init__(self,
                  name,
                  fitter):
-        confound = pd.DataFrame(np.ones(len(fitter.input_signal)),
+
+        confound = pd.DataFrame(np.ones(len(fitter.design_matrix_time_points)),
                                 columns=['intercept'])
         super(Intercept, self).__init__(name, fitter, confound)
 
@@ -156,15 +157,11 @@ class Event(Regressor):
         self.interval = interval
         self.n_regressors = n_regressors
         self.onset_times = onset_times
-
-        if durations is None:
-            self.durations = np.ones_like(self.onset_times) * self.fitter.input_sample_duration
-        else:
-            self.durations = durations
+        self.durations = durations
 
         self.interval_duration = self.interval[1] - self.interval[0]
         self.sample_duration = self.fitter.input_sample_duration
-        self.sample_frequency = self.fitter.input_sample_frequency
+        self.sample_rate = self.fitter.input_sample_frequency
 
         # Check whether the interval is proper
         if ~np.isclose(self.interval_duration % self.sample_duration, 0):
@@ -179,58 +176,31 @@ class Event(Regressor):
 
             warnings.warn(warning)
 
-        self.timepoints = np.arange(self.interval[0],
-                                    self.interval[1] + self.sample_duration,
-                                    self.sample_duration) 
-        onset_index = np.arange(self.onset_times.shape[0])
 
-        if covariates is None: # single dict of one-valued covariates
+        if covariates is None:
             self.covariates = pd.DataFrame({'intercept': np.ones(self.onset_times.shape[0])})
         else:
             self.covariates = pd.DataFrame(covariates)
 
-
-        # only for fir, the nr of regressors is dictated by the interval and sample frequency
-        if type(basis_set) is str:
-            if basis_set == 'fir':
+        if self.basis_set == 'fir':
+            if self.n_regressors is None:
                 self.n_regressors = int((self.interval[1] - self.interval[0]) / self.sample_duration) + 1
-            # legendre and fourier basis sets should be odd
-            elif self.basis_set in ('fourier', 'legendre'):
-                if (self.n_regressors %2 ) == 0:
-                    self.n_regressors += 1
+                warnings.warn('Number of FIR regressors has automatically been set to %d '
+                              'per covariate' % self.n_regressors)
 
-            if self.basis_set == 'fir':
-                self.L = _create_fir_basis(self.timepoints, self.n_regressors)
-                self.regressor_labels = ['fir_%d' % i for i in np.arange(self.timepoints.shape[0])]
-            elif self.basis_set == 'fourier':
-                self.L = _create_fourier_basis(self.timepoints, self.n_regressors)
-                self.regressor_labels = ['fourier_intercept']
-                self.regressor_labels += ['fourier_sin_%d_period' % period for period in np.arange(1, self.n_regressors//2 + 1)]
-                self.regressor_labels += ['fourier_cos_%d_period' % period for period in np.arange(1, self.n_regressors//2 + 1)]
+        # legendre and fourier basis sets should be odd
+        elif self.basis_set in ('fourier', 'legendre'):
+            if self.n_regressors is None:
+                raise Exception('Please provide number of regressors!')
+            elif (self.n_regressors % 2) == 0:
+                self.n_regressors += 1
+                warnings.warn('Number of {} regressors has to be uneven and has automatically ' 
+                              'been set to {} per covariate'.format(self.basis_set, self.n_regressors))
 
-            elif self.basis_set == 'legendre':
-                self.L = _create_legendre_basis(self.timepoints, self.n_regressors)
-                self.regressor_labels = ['legendre_%d' % poly for poly in np.arange(1, self.n_regressors + 1)]
-        else:
-            if len(basis_set) != len(self.timepoints):
-                raise Exception('Basis set should be exactly %d timepoints long, ' \
-                                'current basis has is %d timepoints' % (len(basis_set), len(self.timepoints)))
-            if basis_set.ndim == 1:
-                basis_set = basis_set[np.newaxis, :]
 
-                
-            self.L = basis_set
-            self.n_regressors = self.L.shape[0]
-            self.regressor_labels = ['custom_basis_set_%d' % i for i in range(1, self.L.shape[0] + 1)]
-        
-        self.L = pd.DataFrame(self.L,
-                              columns=pd.Index(self.regressor_labels, name='basis_function'),
-                              index=pd.Index(self.timepoints, name='time'))
-
-        # perhaps for covariance matrix fitting, later:
-        self.C = self.C_I = np.eye(self.L.shape[0])
-
-    def event_timecourse(self, covariate = None):
+    def event_timecourse(self, 
+                         covariate=None,
+                         oversample=1):
         """
         event_timecourse creates a timecourse of events 
         of nr_samples by n_regressors, which has to be converted 
@@ -250,22 +220,26 @@ class Event(Regressor):
 
         """
 
-        event_timepoints = np.zeros(self.fitter.input_signal.shape[0])
-        mean_dur = self.durations.mean() * self.sample_frequency # check this
+        if self.durations is None:
+            durations = np.ones_like(self.onset_times) * self.sample_duration / oversample
+        else:
+            durations = self.durations
+        event_timepoints = np.zeros(self.fitter.input_signal.shape[0] * oversample)
 
         if covariate is None:
             covariate = self.covariates['intercept']
         else:
             covariate = self.covariates[covariate]
 
-        for e,d,c in zip(self.onset_times, self.durations, covariate):
-            et = int((e+self.interval[0]) * self.sample_frequency) 
-            dt =  int(d*self.sample_frequency)
-            event_timepoints[et:et+dt] = c/mean_dur
+        for e,d,c in zip(self.onset_times, durations, covariate):
+            et = int((e + self.interval[0]) * self.sample_rate * oversample) 
+            # round is necessary, int(0,999999) is 0!
+            dt =  int(round(d * self.sample_rate * oversample))             
+            event_timepoints[et:et+dt] = c
 
         return event_timepoints
     
-    def create_design_matrix(self):
+    def create_design_matrix(self, oversample=1):
         """
         create_design_matrix creates the design matrix for this event type by
         iterating over covariates. 
@@ -273,22 +247,32 @@ class Event(Regressor):
         """
 
         # create empty design matrix
-        self.X = np.zeros((self.fitter.input_signal.shape[0], self.n_regressors * self.covariates.shape[1] ))
-        columns = pd.MultiIndex.from_product(([self.name], self.covariates.columns, self.regressor_labels),
+        self.X = np.zeros((self.fitter.input_signal.shape[0] * oversample, 
+                           self.n_regressors * self.covariates.shape[1]))
+
+        L = self.get_basis_function(oversample)
+
+        effective_sample_rate = self.sample_rate * oversample
+
+        columns = pd.MultiIndex.from_product(([self.name], self.covariates.columns, L.columns),
                                              names=['event_type', 'covariate', 'regressor'])
+
         self.X = pd.DataFrame(self.X,
                               columns=columns,
-                              index=self.fitter.input_signal_time_points)
-        self.X.index.rename('t', inplace=True)
+                              index=self.fitter.X.index)
         
+
         for covariate in self.covariates.columns:
-            event_timepoints = self.event_timecourse(covariate=covariate)
+            event_timepoints = self.event_timecourse(covariate=covariate,
+                                                     oversample=oversample)
 
-            for regressor in self.L.columns:
-                self.X[self.name, covariate, regressor] = sp.signal.convolve(event_timepoints, self.L[regressor], 'full')[:self.fitter.input_signal.shape[0]]
+            for regressor in L.columns:
+                self.X[self.name, covariate, regressor] = sp.signal.convolve(event_timepoints,
+                                                                             L[regressor],
+                                                                             'full')[:self.fitter.X.shape[0]]
 
 
-    def get_timecourses(self):
+    def get_timecourses(self, oversample=1):
         """
         takes betas, given from response_fitter object, and restructures the 
         beta weights to the interval that we're trying to fit, using the L
@@ -297,7 +281,42 @@ class Event(Regressor):
         """        
         assert hasattr(self, 'betas'), 'no betas found, please run regression before rsq'
 
-        return self.betas.groupby(level=['event type', 'covariate']).apply(_dotproduct_timecourse, self.L)
+        L = self.get_basis_function(oversample)
+
+        return self.betas.groupby(level=['event type', 'covariate']).apply(_dotproduct_timecourse, L)
+
+    def get_basis_function(self, oversample=1):
+
+        n_timepoints = (self.interval[1] - self.interval[0]) / self.sample_duration
+
+        timepoints = np.arange(self.interval[0], 
+                               self.interval[1] + (1./self.sample_rate/oversample), 
+                               1./self.sample_rate / oversample) 
+
+        # only for fir, the nr of regressors is dictated by the interval and sample frequency
+        if type(self.basis_set) is str:
+
+            if self.basis_set == 'fir':
+                L = _create_fir_basis(self.interval, self.sample_rate, self.n_regressors, oversample)
+                regressor_labels = ['fir_%d' % i for i in np.arange(self.n_regressors)]
+
+            elif self.basis_set == 'fourier':
+                L = _create_fourier_basis(self.interval, self.sample_rate, self.n_regressors, oversample)
+                regressor_labels = ['fourier_intercept']
+                regressor_labels += ['fourier_sin_%d_period' % period for period in np.arange(1, self.n_regressors//2 + 1)]
+                regressor_labels += ['fourier_cos_%d_period' % period for period in np.arange(1, self.n_regressors//2 + 1)]
+
+            elif self.basis_set == 'legendre':
+                L = _create_legendre_basis(self.interval, self.sample_rate, self.n_regressors, oversample)
+                regressor_labels = ['legendre_%d' % poly for poly in np.arange(1, self.n_regressors + 1)]
+        else:
+            raise NotImplementedError()
+        
+        L = pd.DataFrame(L,
+                         columns=pd.Index(regressor_labels, name='basis_function'),
+                         index=pd.Index(timepoints, name='time'))
+
+        return L
         
 
 def _dotproduct_timecourse(d, L):
