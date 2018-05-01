@@ -81,26 +81,30 @@ class GroupResponseFytter(object):
         for i, (col, ts) in self._groupby_ts():
             for e in event:
                 
-                if type(col) is not tuple:
-                    col = (col,)
-
-                if covariates is None:
-                    covariate_matrix = None
+                if col + (e,) not in self.onsets.index:
+                    warnings.warn('Event %s is not available for run %s. Event is ignored for this '
+                                  'run' % (e, col))
                 else:
-                    covariate_matrix = self.onsets.loc[col + (e,), covariates]
+                    if type(col) is not tuple:
+                        col = (col,)
 
-                    if add_intercept:
-                        intercept_matrix = pd.DataFrame(np.ones((len(covariate_matrix), 1)),
-                                                        columns=['intercept'],
-                                                        index=covariate_matrix.index)
-                        covariate_matrix = pd.concat((intercept_matrix, covariate_matrix), 1)
+                    if covariates is None:
+                        covariate_matrix = None
+                    else:
+                        covariate_matrix = self.onsets.loc[col + (e,), covariates]
 
-                self.response_fitters[i].add_event(e,
-                                                   onset_times=self.onsets.loc[col + (e,), 'onset'],
-                                                   basis_set=basis_set,
-                                                   interval=interval,
-                                                   n_regressors=n_regressors,
-                                                   covariates=covariate_matrix)
+                        if add_intercept:
+                            intercept_matrix = pd.DataFrame(np.ones((len(covariate_matrix), 1)),
+                                                            columns=['intercept'],
+                                                            index=covariate_matrix.index)
+                            covariate_matrix = pd.concat((intercept_matrix, covariate_matrix), 1)
+
+                    self.response_fitters[i].add_event(e,
+                                                       onset_times=self.onsets.loc[col + (e,), 'onset'],
+                                                       basis_set=basis_set,
+                                                       interval=interval,
+                                                       n_regressors=n_regressors,
+                                                       covariates=covariate_matrix)
 
 
     def fit(self):
