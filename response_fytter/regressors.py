@@ -10,7 +10,7 @@ import scipy as sp
 from scipy import signal
 import pandas as pd
 import warnings
-from .utils import get_proper_interval
+from .utils import get_proper_interval, double_gamma_with_d
 
 def _create_fir_basis(interval, sample_rate, n_regressors, oversample=1):
     """"""
@@ -28,6 +28,14 @@ def _create_fir_basis(interval, sample_rate, n_regressors, oversample=1):
         rescaled_basis[:, reg] = np.interp(timepoints, basis_timepoints, basis[:, reg])
         
     return rescaled_basis
+
+def _create_canonical_hrf_basis(interval, sample_rate, n_regressors, oversample=1):
+    timepoints = np.arange(interval[0], 
+                           interval[1] + (1./sample_rate/oversample), 
+                           1./sample_rate / oversample) 
+    
+    return double_gamma_with_d(timepoints)[:, np.newaxis]
+
 
 def _create_fourier_basis(interval, sample_rate, n_regressors, oversample=1):
     """"""
@@ -196,6 +204,14 @@ class Event(Regressor):
                 self.n_regressors += 1
                 warnings.warn('Number of {} regressors has to be uneven and has automatically ' 
                               'been set to {} per covariate'.format(self.basis_set, self.n_regressors))
+        elif self.basis_set == 'canonical_hrf':
+            if (self.n_regressors is not None) and (self.n_regressors != 1):
+                warnings.warn('With the canonical HRF as a basis set, you can have only ONE '
+                              'regressors per covariate!')
+
+            self.n_regressors = 1
+
+
 
 
     def event_timecourse(self, 
@@ -315,6 +331,13 @@ class Event(Regressor):
             elif self.basis_set == 'legendre':
                 L = _create_legendre_basis(self.interval, self.sample_rate, self.n_regressors, oversample)
                 regressor_labels = ['legendre_%d' % poly for poly in np.arange(1, self.n_regressors + 1)]
+
+            elif self.basis_set == 'canonical_hrf':
+                L = _create_canonical_hrf_basis(self.interval,
+                                                self.sample_rate,
+                                                1,
+                                                oversample)
+                regressor_labels = ['canonical_hrf']
         else:
             raise NotImplementedError()
         
