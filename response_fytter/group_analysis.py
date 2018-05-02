@@ -75,7 +75,7 @@ class GroupResponseFytter(object):
 
         if event is None:
             event = self.onsets.index.get_level_values('trial_type').unique()
-        if event is str:
+        if type(event) is str:
             event = [event]
 
         if type(covariates) is str:
