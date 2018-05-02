@@ -170,18 +170,17 @@ class ResponseFytter(object):
 
         """        
 
-        X = self.get_resampled_X()
         if alphas is None:
             alphas = np.logspace(7, 0, 20)
         self.rcv = linear_model.RidgeCV(alphas=alphas, 
                 fit_intercept=False, 
                 cv=cv) 
-        self.rcv.fit(X, self.input_signal)
+        self.rcv.fit(self.X, self.input_signal)
 
         self.betas = self.rcv.coef_.T
 
         if store_residuals:
-            self.residuals = self.input_signal - self.rcv.predict(X)
+            self.residuals = self.input_signal - self.rcv.predict(self.X)
 
         self._send_betas_to_regressors()
 
