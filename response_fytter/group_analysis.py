@@ -5,6 +5,8 @@ import warnings
 import seaborn as sns
 import matplotlib.pyplot as plt
 from .plotting import plot_timecourses
+import scipy as sp
+
 class GroupResponseFytter(object):
 
     def __init__(self,
@@ -174,7 +176,7 @@ class GroupResponseFytter(object):
                 return t
 
             elif kind == 'z':
-                t_dist = sp.stats.t(len(self.timeseries.get_level_values('subj_idx')
+                t_dist = sp.stats.t(len(self.timeseries.index.get_level_values('subj_idx')
                                                        .unique()))
                 norm_dist = sp.stats.norm()
 
