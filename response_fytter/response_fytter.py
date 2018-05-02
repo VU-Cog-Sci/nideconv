@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from sklearn import linear_model
 import scipy as sp
+from .plotting import plot_timecourses
 
 class ResponseFytter(object):
     """ResponseFytter takes an input signal and performs deconvolution on it. 
@@ -220,7 +221,8 @@ class ResponseFytter(object):
 
 
     def get_timecourses(self, 
-                        oversample=None):
+                        oversample=None,
+                        melt=False):
         assert hasattr(self, 'betas'), 'no betas found, please run regression before prediction'
 
         if oversample is None:
@@ -232,7 +234,22 @@ class ResponseFytter(object):
             tc = self.events[event_type].get_timecourses(oversample=oversample)
             timecourses = pd.concat((timecourses, tc), ignore_index=False)
 
+        if melt:
+            timecourses = timecourses.reset_index().melt(id_vars=['event type',
+                                                                  'covariate',
+                                                                  'time'],
+                                                         var_name='roi')
+
         return timecourses
+
+    def plot_timecourses(self,
+                         *args,
+                         **kwargs):
+
+        tc = self.get_timecourses(melt=True)
+        tc['subj_idx'] = 'dummy'
+
+        plot_timecourses(tc, *args, **kwargs)
 
     def rsq(self):
         """
@@ -293,3 +310,5 @@ class ResponseFytter(object):
         if remove_incomplete_epochs:
             epochs = epochs[~epochs.isnull().any(1)]
         return epochs
+
+
