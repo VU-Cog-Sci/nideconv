@@ -193,6 +193,8 @@ class GroupResponseFytter(object):
                 raise NotImplementedError("kind should be 'mean', 't', or 'z'")
 
     def plot_groupwise_timecourses(self,
+                                   event_types=None,
+                                   covariates=None,
                                    plots='roi',
                                    col='covariate',
                                    row=None,
@@ -209,6 +211,13 @@ class GroupResponseFytter(object):
 
         tc = self.get_subjectwise_timecourses(oversample=oversample,
                                               melt=True)
+
+        if event_types is not None:
+
+            if type(event_types) is str:
+                event_types = [event_types]
+            
+            tc = tc[np.in1d(tc['event type'], event_types)]
 
         return plot_timecourses(tc,
                                 plots=plots,
