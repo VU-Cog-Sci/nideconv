@@ -101,12 +101,18 @@ class GroupResponseFytter(object):
                                                             columns=['intercept'],
                                                             index=covariate_matrix.index)
                             covariate_matrix = pd.concat((intercept_matrix, covariate_matrix), 1)
+                    
+                    if np.isfinite(self.onsets.loc[col + (e,), 'duration']).all():
+                        durations = self.onsets.loc[col + (e,), 'duration']
+                    else:
+                        durations = None
 
                     self.response_fitters[i].add_event(e,
                                                        onset_times=self.onsets.loc[col + (e,), 'onset'],
                                                        basis_set=basis_set,
                                                        interval=interval,
                                                        n_regressors=n_regressors,
+                                                       durations=durations,
                                                        covariates=covariate_matrix)
 
 
