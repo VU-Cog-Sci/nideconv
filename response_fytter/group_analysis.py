@@ -102,7 +102,7 @@ class GroupResponseFytter(object):
                                                             index=covariate_matrix.index)
                             covariate_matrix = pd.concat((intercept_matrix, covariate_matrix), 1)
                     
-                    if np.isfinite(self.onsets.loc[col + (e,), 'duration']).all():
+                    if 'duration' in self.onsets and np.isfinite(self.onsets.loc[col + (e,), 'duration']).all():
                         durations = self.onsets.loc[col + (e,), 'duration']
                     else:
                         durations = None
