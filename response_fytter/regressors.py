@@ -190,26 +190,37 @@ class Event(Regressor):
         else:
             self.covariates = pd.DataFrame(covariates)
 
-        if self.basis_set == 'fir':
-            if self.n_regressors is None:
-                self.n_regressors = int((self.interval[1] - self.interval[0]) / self.sample_duration) + 1
-                warnings.warn('Number of FIR regressors has automatically been set to %d '
-                              'per covariate' % self.n_regressors)
+        if type(self.basis_set) is not str:
+            self.n_regressors = self.basis_set.shape[1]
 
-        # legendre and fourier basis sets should be odd
-        elif self.basis_set in ('fourier', 'legendre'):
-            if self.n_regressors is None:
-                raise Exception('Please provide number of regressors!')
-            elif (self.n_regressors % 2) == 0:
-                self.n_regressors += 1
-                warnings.warn('Number of {} regressors has to be uneven and has automatically ' 
-                              'been set to {} per covariate'.format(self.basis_set, self.n_regressors))
-        elif self.basis_set == 'canonical_hrf':
-            if (self.n_regressors is not None) and (self.n_regressors != 1):
-                warnings.warn('With the canonical HRF as a basis set, you can have only ONE '
-                              'regressors per covariate!')
+            self.basis_set = pd.DataFrame(self.basis_set,
+                                          index=np.linspace(*self.interval,
+                                                            len(self.basis_set),
+                                                            endpoint=True,
+                                                            )
+                                          )
 
-            self.n_regressors = 1
+        else:
+            if self.basis_set == 'fir':
+                if self.n_regressors is None:
+                    self.n_regressors = int((self.interval[1] - self.interval[0]) / self.sample_duration) + 1
+                    warnings.warn('Number of FIR regressors has automatically been set to %d '
+                                  'per covariate' % self.n_regressors)
+
+            # legendre and fourier basis sets should be odd
+            elif self.basis_set in ('fourier', 'legendre'):
+                if self.n_regressors is None:
+                    raise Exception('Please provide number of regressors!')
+                elif (self.n_regressors % 2) == 0:
+                    self.n_regressors += 1
+                    warnings.warn('Number of {} regressors has to be uneven and has automatically ' 
+                                  'been set to {} per covariate'.format(self.basis_set, self.n_regressors))
+            elif self.basis_set == 'canonical_hrf':
+                if (self.n_regressors is not None) and (self.n_regressors != 1):
+                    warnings.warn('With the canonical HRF as a basis set, you can have only ONE '
+                                  'regressors per covariate!')
+
+                self.n_regressors = 1
 
 
 
@@ -339,8 +350,13 @@ class Event(Regressor):
                                                 oversample)
                 regressor_labels = ['canonical_hrf']
         else:
-            raise NotImplementedError()
-        
+            regressor_labels = ['custom_basis_function_%d' % i for i in range(1, self.n_regressors+1)]        
+            L = np.zeros((self.basis_set.shape[0] * oversample, self.n_regressors))
+
+            interp = sp.interpolate.interp1d(self.basis_set.index, self.basis_set.values, axis=0)
+            L = interp(timepoints)
+
+
         L = pd.DataFrame(L,
                          columns=pd.Index(regressor_labels, name='basis_function'),
                          index=pd.Index(timepoints, name='time'))
