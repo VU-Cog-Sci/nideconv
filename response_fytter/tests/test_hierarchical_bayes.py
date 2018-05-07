@@ -32,26 +32,26 @@ class HierarchicalBayestest(unittest.TestCase):
 
         df = []
 
-        for (subject_id, run), d in self.data.reset_index().groupby(
-                ['subject_id', 'run']):
+        for (subj_idx, run), d in self.data.reset_index().groupby(
+                ['subj_idx', 'run']):
             fytter = response_fytter.ResponseFytter(
                 d.signal.values, 1. / self.TR)
 
             fytter.add_event('Condition A',
-                             onset_times=self.onsets.loc[subject_id,
+                             onset_times=self.onsets.loc[subj_idx,
                                                          run,
                                                          'Condition A'].onset,
                              interval=[0,
                                        20])
 
             fytter.add_event('Condition B',
-                             onset_times=self.onsets.loc[subject_id,
+                             onset_times=self.onsets.loc[subj_idx,
                                                          run,
                                                          'Condition B'].onset,
                              interval=[0,
                                        20])
 
-            self.hfit.add_run(fytter, subject_id)
+            self.hfit.add_run(fytter, subj_idx)
 
     def _test_model(self,
                    cauchy_priors=False,
