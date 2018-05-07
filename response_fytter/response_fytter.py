@@ -242,10 +242,12 @@ class ResponseFytter(object):
         return timecourses
 
     def plot_timecourses(self,
+                         oversample=None,
                          *args,
                          **kwargs):
 
-        tc = self.get_timecourses(melt=True)
+        tc = self.get_timecourses(melt=True,
+                                  oversample=oversample)
         tc['subj_idx'] = 'dummy'
 
         plot_timecourses(tc, *args, **kwargs)
