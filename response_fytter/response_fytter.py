@@ -328,6 +328,7 @@ class NiftiResponseFytter(ResponseFytter):
                  detrend=False,
                  standardize=False,
                  confounds_for_extraction=None,
+                 memory=None,
                  **kwargs):
 
 
@@ -345,13 +346,15 @@ class NiftiResponseFytter(ResponseFytter):
                                            mask=mask)
                 self.masker = input_data.NiftiMasker(bool_mask,
                                                      detrend=detrend,
-                                                     standardize=standardize)
+                                                     standardize=standardize,
+                                                     memory=memory)
                 self.mask_weights = self.masker.fit_transform(load_niimg(mask))
                 self.mask_weights /= self.mask_weights.sum()
             else:
                 self.masker = input_data.NiftiMasker(mask,
                                                      detrend=detrend,
-                                                     standardize=standardize)
+                                                     standardize=standardize,
+                                                     memory=memory)
 
         input_signal = self.masker.fit_transform(func_img) 
         self.n_voxels = input_signal.shape[1]
