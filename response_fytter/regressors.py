@@ -195,10 +195,8 @@ class Event(Regressor):
 
             self.basis_set = pd.DataFrame(self.basis_set,
                                           index=np.linspace(*self.interval,
-                                                            len(self.basis_set),
-                                                            endpoint=True,
-                                                            )
-                                          )
+                                                            num=len(self.basis_set),
+                                                            endpoint=True))
 
         else:
             if self.basis_set == 'fir':

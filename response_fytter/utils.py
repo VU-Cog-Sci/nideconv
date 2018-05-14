@@ -39,7 +39,7 @@ def convolve_with_function(input,
     duration = interval[1] - interval[0]
     
     t = np.linspace(*interval, 
-                    new_sample_rate*duration)
+                    num=new_sample_rate*duration)
     
     f = function(t, *args, **kwargs)
     
