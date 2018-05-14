@@ -63,9 +63,11 @@ def simulate_fmri_experiment(conditions=None,
                     
 
 
-                isis = np.random.gamma(run_duration / n_trials, 1, size=n_trials * 2)
+                isis = np.random.gamma(run_duration / n_trials, 1, size=n_trials * 10)
                 onsets = np.cumsum(isis)
-                onsets = np.random.choice(onsets[onsets < run_duration], n_trials)
+                onsets = np.random.choice(onsets[onsets < run_duration], 
+                                          n_trials,
+                                          replace=False)
 
                 signals[i, (onsets / TR).astype(int)] = parameters.loc[subj_idx, name]
                 
