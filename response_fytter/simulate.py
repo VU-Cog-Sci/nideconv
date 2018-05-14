@@ -12,6 +12,7 @@ def simulate_fmri_experiment(conditions=None,
                              n_trials=40, 
                              run_duration=300,
                              oversample=20,
+                             n_rois=1,
                              kernel='double_hrf'):
     """
     This function simulates an fMRI experiment. 
@@ -63,9 +64,11 @@ def simulate_fmri_experiment(conditions=None,
                     
 
 
-                isis = np.random.gamma(run_duration / n_trials, 1, size=n_trials * 2)
+                isis = np.random.gamma(run_duration / n_trials, 1, size=n_trials * 10)
                 onsets = np.cumsum(isis)
-                onsets = np.random.choice(onsets[onsets < run_duration], n_trials)
+                onsets = np.random.choice(onsets[onsets < run_duration], 
+                                          n_trials,
+                                          replace=False)
 
                 signals[i, (onsets / TR).astype(int)] = parameters.loc[subj_idx, name]
                 
@@ -78,9 +81,13 @@ def simulate_fmri_experiment(conditions=None,
                 
             signal = signals.sum(0)
             signal = convolve_with_function(signal, kernel, sample_rate)
-            signal += np.random.randn(len(signal))
+            signal = np.repeat(signal[:, np.newaxis], n_rois, 1)
+            signal += np.random.randn(*signal.shape)
             
-            tmp = pd.DataFrame({'signal':signal})
+            columns = ['area %d' % i for i in range(1, n_rois + 1)]
+            tmp = pd.DataFrame(signal,
+                               columns=columns)
+
             tmp['t'] = frametimes
             tmp['subj_idx'], tmp['run'] = subj_idx, run
             

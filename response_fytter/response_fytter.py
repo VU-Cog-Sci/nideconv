@@ -304,10 +304,20 @@ class ResponseFytter(object):
         indices[indices >= signal.shape[0]] = -1
 
         # Make dummy element to fill epochs with nans if they fall out of the timeseries
-        signal = pd.concat((signal, pd.DataFrame([np.nan], index=[np.nan])))
+        signal = pd.concat((signal, pd.DataFrame(np.zeros((1, signal.shape[1])) * np.nan,
+                                                 columns=signal.columns,
+                                                 index=[np.nan])), 
+                           0)
 
         # Calculate epochs
-        epochs =  pd.DataFrame(signal.values.ravel()[indices], columns=np.linspace(interval[0], interval[1], interval_n_samples))
+        epochs = signal.values[indices].swapaxes(-1, -2)
+        epochs = epochs.reshape((epochs.shape[0], np.prod(epochs.shape[1:])))
+        columns = pd.MultiIndex.from_product([signal.columns,
+                                             np.linspace(interval[0], interval[1], interval_n_samples)],
+                                            names=['roi', 'time'])
+        epochs = pd.DataFrame(epochs,
+                              columns=columns,
+                             index=pd.Index(onsets, name='onset'))
         
         # Get rid of incomplete epochs:
         if remove_incomplete_epochs:
