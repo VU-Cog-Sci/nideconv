@@ -388,6 +388,9 @@ class NiftiResponseFytter(ResponseFytter):
                         **kwargs
                         ):
 
+        if average_over_mask is None:
+            average_over_mask = self.average_over_mask
+
         if len(self.events) is 0:
             raise Exception("No events were added")
 
@@ -395,8 +398,19 @@ class NiftiResponseFytter(ResponseFytter):
                                                                        melt=False,
                                                                        **kwargs)
 
-        return self._inverse_transform(timecourses,
-                                       average_over_mask)
+        if average_over_mask:
+            tc_nii = self._inverse_transform(timecourses, True)
+        else:
+            tc_df = []
+            for (event_type, covariate), tc in timecourses.groupby(level=['event type', 'covariate']):
+                tc_nii = self._inverse_transform(tc, False)
+                tc = pd.DataFrame([tc_nii], index=pd.MultiIndex.from_tuples([(event_type, covariate)],
+                                                                         names=['event type', 'covariate']),
+                                  columns=['nii'])
+                tc_df.append(tc)
+
+            return pd.concat(tc_df)
+
                                        
 
 
@@ -404,8 +418,11 @@ class NiftiResponseFytter(ResponseFytter):
                            data,
                            average_over_mask=None):
 
+        if average_over_mask is None:
+            average_over_mask = self.average_over_mask
+
         if average_over_mask:
-            data = data.dot(self.mask_weights.T).to_frame('mean signal')
+            data = data.dot(self.mask_weights.T) 
             return data.sum(1)
         else:
             return self.masker.inverse_transform(data)
