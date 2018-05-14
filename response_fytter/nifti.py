@@ -3,7 +3,7 @@ from nilearn._utils import load_niimg
 from nilearn import input_data, image
 import pandas as pd
 import numpy as np
-import warnings
+import logging
 
 
 class NiftiResponseFytter(ResponseFytter):
@@ -11,11 +11,9 @@ class NiftiResponseFytter(ResponseFytter):
     def __init__(self,
                  func_img,
                  sample_rate,
-                 mask,
+                 mask=None,
                  oversample_design_matrix=20,
                  add_intercept=True,
-                 weight_mask=True,
-                 average_over_mask=False,
                  threshold=0,
                  detrend=False,
                  standardize=False,
@@ -24,36 +22,24 @@ class NiftiResponseFytter(ResponseFytter):
                  **kwargs):
 
 
-        self.average_over_mask = average_over_mask
         self.confounds = confounds_for_extraction
 
         if isinstance(mask, input_data.NiftiMasker):
             self.masker = mask
         else:
-            mask = load_niimg(mask)
 
-            if weight_mask:
-                bool_mask = image.math_img('mask > {}'.format(threshold),
-                                           mask=mask)
-                self.masker = input_data.NiftiMasker(bool_mask,
-                                                     detrend=detrend,
-                                                     standardize=standardize,
-                                                     memory=memory)
-                self.mask_weights = self.masker.fit_transform(load_niimg(mask))
-                self.mask_weights /= self.mask_weights.sum()
+            if mask is None:
+                logging.warn('No mask has been given. Nilearn will automatically try to'\
+                              'make one')
             else:
-                self.masker = input_data.NiftiMasker(mask,
-                                                     detrend=detrend,
-                                                     standardize=standardize,
-                                                     memory=memory)
+                mask = load_niimg(mask)
+            self.masker = input_data.NiftiMasker(mask,
+                                                 detrend=detrend,
+                                                 standardize=standardize,
+                                                 memory=memory)
 
         input_signal = self.masker.fit_transform(func_img) 
         self.n_voxels = input_signal.shape[1]
-
-        if not weight_mask:
-            self.mask_weights = np.ones((1,self.n_voxels))
-            self.mask_weights /= self.n_voxels
-
 
         super(NiftiResponseFytter, self).__init__(input_signal=input_signal,
                                            sample_rate=sample_rate,
@@ -67,20 +53,15 @@ class NiftiResponseFytter(ResponseFytter):
         raise NotImplementedError('Not implemented for NiftiResponseFytter')
 
 
-    def predict_from_design_matrix(self,
-                                   average_over_mask=False,
-                                   X=None):
+    def predict_from_design_matrix(self, X=None):
         prediction = super(NiftiResponseFytter, self).predict_from_design_matrix(X)
         return self._inverse_transform(prediction)
 
     def get_timecourses(self, 
                         oversample=None,
-                        average_over_mask=None,
+                        average_over_mask=False,
                         **kwargs
                         ):
-
-        if average_over_mask is None:
-            average_over_mask = self.average_over_mask
 
         if len(self.events) is 0:
             raise Exception("No events were added")
@@ -90,11 +71,21 @@ class NiftiResponseFytter(ResponseFytter):
                                                                        **kwargs)
 
         if average_over_mask:
-            tc_nii = self._inverse_transform(timecourses, True)
+            
+            average_over_mask = load_niimg(average_over_mask)
+
+            weights = image.math_img('mask / mask.sum()', 
+                                     mask=average_over_mask)
+
+            weights = self.masker.fit_transform(weights)
+
+            timecourses = timecourses.dot(weights.T) 
+            return timecourses.sum(1)
+
         else:
             tc_df = []
             for (event_type, covariate), tc in timecourses.groupby(level=['event type', 'covariate']):
-                tc_nii = self._inverse_transform(tc, False)
+                tc_nii = self._inverse_transform(tc)
                 tc = pd.DataFrame([tc_nii], index=pd.MultiIndex.from_tuples([(event_type, covariate)],
                                                                          names=['event type', 'covariate']),
                                   columns=['nii'])
@@ -106,15 +97,7 @@ class NiftiResponseFytter(ResponseFytter):
 
 
     def _inverse_transform(self, 
-                           data,
-                           average_over_mask=None):
+                           data):
 
-        if average_over_mask is None:
-            average_over_mask = self.average_over_mask
-
-        if average_over_mask:
-            data = data.dot(self.mask_weights.T) 
-            return data.sum(1)
-        else:
-            return self.masker.inverse_transform(data)
+        return self.masker.inverse_transform(data)
 
