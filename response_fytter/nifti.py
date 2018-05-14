@@ -3,6 +3,7 @@ from nilearn._utils import load_niimg
 from nilearn import input_data, image
 import pandas as pd
 import numpy as np
+import warnings
 
 
 class NiftiResponseFytter(ResponseFytter):
@@ -10,9 +11,9 @@ class NiftiResponseFytter(ResponseFytter):
     def __init__(self,
                  func_img,
                  sample_rate,
+                 mask,
                  oversample_design_matrix=20,
                  add_intercept=True,
-                 mask=None,
                  weight_mask=True,
                  average_over_mask=False,
                  threshold=0,
@@ -29,7 +30,6 @@ class NiftiResponseFytter(ResponseFytter):
         if isinstance(mask, input_data.NiftiMasker):
             self.masker = mask
         else:
-
             mask = load_niimg(mask)
 
             if weight_mask:
