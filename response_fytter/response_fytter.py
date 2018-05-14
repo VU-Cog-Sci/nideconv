@@ -149,7 +149,7 @@ class ResponseFytter(object):
             self._send_betas_to_regressors()
 
             if store_residuals:
-                self.residuals = self.input_signal - self.predict_from_design_matrix()
+                self._residuals = self.input_signal - self.predict_from_design_matrix()
 
         elif type == 'ridge':   # betas and residuals are internalized by ridge_regress
             if self.input_signal.shape[1] > 1:
@@ -181,7 +181,7 @@ class ResponseFytter(object):
         self.betas = self.rcv.coef_.T
 
         if store_residuals:
-            self.residuals = self.input_signal - self.rcv.predict(self.X)
+            self._residuals = self.input_signal - self.rcv.predict(self.X)
 
         self._send_betas_to_regressors()
 
@@ -253,7 +253,7 @@ class ResponseFytter(object):
 
         plot_timecourses(tc, *args, **kwargs)
 
-    def rsq(self):
+    def get_rsq(self):
         """
         calculate the rsq of a given fit. 
         calls predict_from_design_matrix to predict the signal that has been fit
@@ -263,15 +263,15 @@ class ResponseFytter(object):
         assert hasattr(self, 'betas'), \
                         'no betas found, please run regression before rsq'
 
-        # rsq only counts where we actually try to explain data
-        predicted_signal = self.predict_from_design_matrix().values
+        return 1 - ((self.get_residuals()**2).sum() / (self.input_signal**2).sum())
 
 
-        rsq = 1.0 - np.sum((np.atleast_2d(predicted_signal).T - self.input_signal)**2, axis = 0) / \
-                        np.sum(self.input_signal.squeeze()**2, axis = 0)
-        return np.squeeze(rsq)
+    def get_residuals(self):
+        if not hasattr(self, '_residuals'):
+            return self.input_signal - self.predict_from_design_matrix()
+        else:
+            return self._residuals
 
-    #def get_timecourses
 
     def get_epochs(self, onsets, interval, remove_incomplete_epochs=True):
         """ 
@@ -286,8 +286,8 @@ class ResponseFytter(object):
         if self.X.shape[1] == 0:
             signal = self.input_signal
         else:
-            self.regress()
-            signal = self.residuals
+            self.regress(store_residuals=True)
+            signal = self._residuals
             
             
         onsets = np.array(onsets)
