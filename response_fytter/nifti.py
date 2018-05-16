@@ -224,9 +224,7 @@ class GroupNiftiResponseFytter(object):
                 if image['confounds'] is not None:
                     fitter.add_confounds('confounds', image['confounds'].copy())
         
-            logging.info(fitter.X.columns.tolist())
             fitter.regress()
-
 
             tc = fitter.get_timecourses()
             
