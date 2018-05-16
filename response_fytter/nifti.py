@@ -222,7 +222,7 @@ class GroupNiftiResponseFytter(object):
                                  covariate_matrix)
 
                 if image['confounds'] is not None:
-                    fitter.add_confounds('confounds', image['confounds'])
+                    fitter.add_confounds('confounds', image['confounds'].copy())
         
             logging.info(fitter.X.columns.tolist())
             fitter.regress()
