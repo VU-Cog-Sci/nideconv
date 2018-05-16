@@ -168,13 +168,13 @@ class GroupNiftiResponseFytter(object):
         self.images.append(image_kws)
 
 
-    def fit(self):
+    def fit(self, keep_timeseries=False):
 
         self.timecourses = pd.DataFrame()
 
-        self.maskers = pd.DataFrame([],
+        self.fitters = pd.DataFrame([],
                                     index=pd.MultiIndex.from_tuples([], names=['subj_idx', 'run']),
-                                    columns=['masker'])
+                                    columns=['fitter'])
 
         for image in self.images:
 
@@ -189,8 +189,9 @@ class GroupNiftiResponseFytter(object):
                                          self.standardize,
                                          memory=self.memory)
 
-            self.maskers.loc[(image['subj_idx'], image['run']), 
-                             'masker'] = fitter.masker
+
+            if image['confounds'] is not None:
+                fitter.add_confounds('confounds', image['confounds'].copy())
 
             for event in self.events:
 
@@ -220,15 +221,15 @@ class GroupNiftiResponseFytter(object):
                                  event['n_regressors'],
                                  durations,
                                  covariate_matrix)
-
-                if image['confounds'] is not None:
-                    fitter.add_confounds('confounds', image['confounds'].copy())
         
             fitter.regress()
 
             tc = fitter.get_timecourses()
-            
-            del fitter
+
+            if not keep_timeseries:
+                tc.input_signal = None
+
+            self.fitters.loc[(image['subj_idx'], image['run']), 'fitter'] = fitter
 
             tc['subj_idx'] = image['subj_idx']
             tc['run'] = image['run']
