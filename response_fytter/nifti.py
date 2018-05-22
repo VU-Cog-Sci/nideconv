@@ -201,9 +201,9 @@ class GroupNiftiResponseFytter(object):
                 if event['covariates'] is None:
                     covariate_matrix = None
                 else:
-                    covariate_matrix = behavior[covariates]
+                    covariate_matrix = behavior[event['covariates']]
 
-                    if add_intercept:
+                    if event['add_intercept']:
                         intercept_matrix = pd.DataFrame(np.ones((len(covariate_matrix), 1)),
                                                         columns=['intercept'],
                                                         index=covariate_matrix.index)
@@ -241,7 +241,10 @@ class GroupNiftiResponseFytter(object):
         self.timecourses = self.timecourses.reset_index().set_index(['subj_idx', 'run', 'event type', 'covariate', 'time'])
 
 
-    def get_timecourses(self, mask=None, names=None):
+    def get_timecourses(self, mask=None, names=None,
+                        event_types=None,
+                        covariates=None,
+                        resampling_target=None):
 
         if mask is None:
             return self.timecourses
@@ -249,16 +252,30 @@ class GroupNiftiResponseFytter(object):
         if type(mask) is not list:
             mask = [mask]
 
+        
+        if event_types is None:
+            event_types = slice(None)
+        
+        if covariates is None:
+            covariates = slice(None)
 
         if names:
             names = pd.Index(names, name='roi')
 
-        masker = input_data.NiftiMapsMasker(mask)
+        masker = input_data.NiftiMapsMasker(mask, resampling_target=resampling_target)
 
         masker.fit()
 
-        timecourses = self.timecourses.nii.apply(lambda d: pd.Series(masker.transform(d).squeeze(), 
-                                                                index=names))
+        ix = pd.IndexSlice
+        timecourses = self.timecourses.loc[ix[:, :,event_types, covariates, :], :]
+
+        logging.info('Concatenating...')
+        concat_niis = image.concat_imgs(timecourses.nii.tolist())
+
+        logging.info('Masking...')
+        timecourses = pd.DataFrame(masker.transform(concat_niis),
+                                   index=timecourses.index,
+                                   columns=names)
 
         return timecourses
 
