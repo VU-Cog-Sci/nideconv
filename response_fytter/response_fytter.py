@@ -145,7 +145,7 @@ class ResponseFytter(object):
         """
         if type == 'ols':
             self.betas, self.ssquares, self.rank, self.s = \
-                                np.linalg.lstsq(self.X, self.input_signal, rcond=None)
+                                np.linalg.lstsq(self.X, self.input_signal, rcond=-1)
             self._send_betas_to_regressors()
 
             if store_residuals:
