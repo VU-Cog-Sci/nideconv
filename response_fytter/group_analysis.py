@@ -6,6 +6,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from .plotting import plot_timecourses
 import scipy as sp
+import logging
 
 class GroupResponseFytter(object):
 
@@ -26,14 +27,27 @@ class GroupResponseFytter(object):
 
         self.oversample_design_matrix = oversample_design_matrix
 
-        if 'trial_type' not in self.onsets:
-            self.onsets['trial_type'] = 'intercept'
 
         self.index_columns = []
 
-        for c in ['subj_idx', 'run']:
+        idx_fields = ['subj_idx', 'run']
+
+        for field in idx_fields:
+            if field in self.onsets.index.names:
+                self.onsets.reset_index(field, inplace=True)
+
+            if field in self.timeseries.index.names:
+                self.timeseries.reset_index(field, inplace=True)
+
+        if 'trial_type' in self.onsets.index.names:
+            self.onsets.reset_index('trial_type', inplace=True)
+
+        for c in idx_fields:
             if c in self.timeseries.columns:
                 self.index_columns.append(c)
+
+        if 'trial_type' not in self.onsets:
+            self.onsets['trial_type'] = 'intercept'
 
         self.timeseries['t'] = self.timeseries.groupby(self.index_columns).apply(_make_time_column, 
                                                                                  input_sample_rate)
@@ -75,6 +89,8 @@ class GroupResponseFytter(object):
 
         if event is None:
             event = self.onsets.index.get_level_values('trial_type').unique()
+            logging.warn('No event type was given, automatically entering the following event types: %s' % event)
+
         if type(event) is str:
             event = [event]
 
