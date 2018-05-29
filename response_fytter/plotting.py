@@ -14,6 +14,7 @@ def plot_timecourses(tc,
                      sharex=True,
                      sharey=False,
                      aspect=1.5,
+                     col_order=None,
                      *args,
                      **kwargs):
 
@@ -32,7 +33,8 @@ def plot_timecourses(tc,
                             row=row,
                             sharex=sharex,
                             sharey=sharey,
-                            aspect=aspect)
+                            aspect=aspect,
+                            col_order=col_order)
 
         fac.map_dataframe(sns.tsplot,
                           time='time',
