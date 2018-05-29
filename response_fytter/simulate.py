@@ -64,9 +64,14 @@ def simulate_fmri_experiment(conditions=None,
                     
 
 
-                isis = np.random.gamma(run_duration / n_trials, 1, size=n_trials * 10)
-                onsets = np.cumsum(isis)
-                onsets = np.random.choice(onsets[onsets < run_duration], 
+                onsets = np.ones(0)
+
+                while len(onsets) < n_trials:
+                    isis = np.random.gamma(run_duration / n_trials, 1, size=n_trials * 10)
+                    onsets = np.cumsum(isis)
+                    onsets = onsets[onsets < run_duration]
+
+                onsets = np.random.choice(onsets, 
                                           n_trials,
                                           replace=False)
 
