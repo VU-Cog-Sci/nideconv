@@ -324,3 +324,61 @@ class ResponseFytter(object):
         return epochs
 
 
+class ConcatenatedResponseFytter(ResponseFytter):
+
+
+    def __init__(self, response_fytters):
+
+        self.response_fytters = response_fytters
+
+        self.X = pd.concat([rf.X for rf in self.response_fytters]).fillna(0)
+
+        for attr in ['sample_rate', 'oversample_design_matrix']:
+            check_properties_response_fytters(self.response_fytters, attr)
+            setattr(self, attr, getattr(self.response_fytters[0], attr))
+
+
+        self.input_signal = pd.concat([rf.input_signal for rf in self.response_fytters])
+
+        self.events =  {}
+        for rf in self.response_fytters:
+            self.events.update(rf.events)
+
+
+    def add_intercept(self, *args, **kwargs):
+        raise Exception('ConcatenatedResponseFytter does not allow for adding'\
+                         'intercepts anymore. Do this in the original response '\
+                         'fytters that get concatenated')
+
+
+    def add_confounds(self, *args, **kwargs):
+        raise Exception('ConcatenatedResponseFytter does not allow for adding '\
+                         'confounds. Do this in the original response '\
+                         'fytters that get concatenated')
+
+
+    def add_event(self, *args, **kwargs):
+        raise Exception('ConcatenatedResponseFytter does not allow for adding'\
+                         'events.')
+
+
+    def plot_timecourses(self,
+                         oversample=None,
+                         *args,
+                         **kwargs):
+
+        tc = self.get_timecourses(melt=True,
+                                  oversample=oversample)
+        tc['subj_idx'] = 'dummy'
+
+        plot_timecourses(tc, *args, **kwargs)
+
+
+    def get_epochs(self, onsets, interval, remove_incomplete_epochs=True):
+        raise NotImplementedError()
+
+def check_properties_response_fytters(response_fytters, attribute):
+
+    attribute_values = [getattr(rf, attribute) for rf in response_fytters]
+
+    assert(all([v == attribute_values[0] for v in attribute_values])), "%s not equal across response fytters!" % attribute

@@ -1,4 +1,4 @@
-from .response_fytter import ResponseFytter
+from .response_fytter import ResponseFytter, ConcatenatedResponseFytter
 import numpy as np
 import pandas as pd
 import warnings
@@ -16,6 +16,7 @@ class GroupResponseFytter(object):
                  input_sample_rate,
                  oversample_design_matrix=20,
                  confounds=None,
+                 concatenate_runs=True,
                  *args,
                  **kwargs):
 
@@ -24,6 +25,8 @@ class GroupResponseFytter(object):
         self.timeseries = timeseries
         self.onsets = behavior
         self.confounds = confounds
+
+        self.concatenate_runs = concatenate_runs
 
         self.oversample_design_matrix = oversample_design_matrix
 
@@ -53,7 +56,10 @@ class GroupResponseFytter(object):
                                                                                  input_sample_rate)
 
 
-        self.response_fitters = []
+        index = pd.MultiIndex(names=self.index_columns,
+                              levels=[[]]*len(self.index_columns),
+                              labels=[[]]*len(self.index_columns),) 
+        self.response_fitters = pd.Series(index=index) 
 
         if self.index_columns is []:
             raise Exception('GroupResponseFytter is only to be used for datasets with multiple subjects'
@@ -73,14 +79,17 @@ class GroupResponseFytter(object):
                                     self.oversample_design_matrix,
                                     *args,
                                     **kwargs)
-                self.response_fitters.append(rf)
+                #self.response_fitters.append(rf)
+                self.response_fitters.loc[idx] = rf
                 if self.confounds is not None:
-                    self.response_fitters[-1].add_confounds('confounds', self.confounds.loc[idx])
+                    #self.response_fitters[-1].add_confounds('confounds', self.confounds.loc[idx])
+                    self.response_fitters.loc[idx].add_confounds('confounds', self.confounds.loc[idx])
 
 
     def add_event(self,
                  event=None,
                  basis_set='fir', 
+
                  interval=[0,10], 
                  n_regressors=None, 
                  covariates=None,
@@ -97,7 +106,7 @@ class GroupResponseFytter(object):
         if type(covariates) is str:
             covariates = [covariates]
 
-        for i, (col, ts) in self._groupby_ts():
+        for i, (col, ts) in self._groupby_ts_runs():
             for e in event:
                 
                 if col + (e,) not in self.onsets.index:
@@ -123,7 +132,7 @@ class GroupResponseFytter(object):
                     else:
                         durations = None
 
-                    self.response_fitters[i].add_event(e,
+                    self.response_fitters[col].add_event(e,
                                                        onset_times=self.onsets.loc[col + (e,), 'onset'],
                                                        basis_set=basis_set,
                                                        interval=interval,
@@ -132,34 +141,50 @@ class GroupResponseFytter(object):
                                                        covariates=covariate_matrix)
 
 
-    def fit(self):
-        for response_fitter in self.response_fitters:
-            response_fitter.regress()
+    def fit(self, concatenate_runs=None):
 
-    def get_timecourses(self, oversample=None):
+        if concatenate_runs is None:
+            concatenate_runs = self.concatenate_runs
+
+        if concatenate_runs:
+            self.concat_response_fitters = \
+                self.response_fitters.groupby('subj_idx') \
+                                     .apply(ConcatenatedResponseFytter)
+
+            for concat_rf in self.concat_response_fitters:
+                concat_rf.regress()
+        else:
+            for rf in self.response_fitters:
+                rf.regress()
+
+    def get_timecourses(self, oversample=None,
+                        concatenate_runs=None):
+
+        if concatenate_runs is None:
+            concatenate_runs = self.concatenate_runs
 
         if oversample is None:
             oversample = self.oversample_design_matrix
 
-        df = []
-        for i, (col, ts) in self._groupby_ts():
+        if concatenate_runs:
+            if not hasattr(self, 'concat_response_fitters'):
+                raise Exception('GroupResponseFytter not yet fitted')
+            rfs = self.concat_response_fitters
+        else:
+            rfs = self.response_fitters
 
-            if type(col) is not tuple:
-                col = (col,)
+        tc_ = rfs.apply(lambda rf: rf.get_timecourses(oversample))
 
-            tc = self.response_fitters[i].get_timecourses(oversample)
+        tc = pd.concat(tc_.to_dict())
+        index_names = tc_.index.names
+        tc.index.set_names(index_names, level=range(len(index_names)), 
+                           inplace=True)
 
-            for ic, value in zip(self.index_columns, col):
-                tc[ic] = value
-            
+        return tc
 
-            df.append(tc)
 
-        return pd.concat(df).reset_index().set_index(self.index_columns + tc.index.names)
-
-    def _groupby_ts(self): 
+    def _groupby_ts_runs(self): 
         return enumerate(self.timeseries.groupby(level=self.index_columns))
-
 
     def get_subjectwise_timecourses(self, 
                                     oversample=None, 
