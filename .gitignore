@@ -51,7 +51,10 @@ coverage.xml
 *.log
 
 # Sphinx documentation
-docs/_build/
+doc/_build
+doc/auto_examples
+doc/gen_modules
+doc/modules/generated
 
 # PyBuilder
 target/
