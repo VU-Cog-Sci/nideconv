@@ -60,11 +60,8 @@ def _create_fourier_basis(interval, sample_rate, n_regressors, oversample=1):
 
 def _create_legendre_basis(interval, sample_rate, n_regressors, oversample=1):
     """"""
-    timepoints = np.arange(interval[0],
-                           interval[1] + (1./sample_rate/oversample),
-                           1./sample_rate / oversample)    
 
-    x = np.linspace(-1, 1, len(timepoints) * oversample, endpoint=True)
+    x = np.linspace(-1, 1, int(np.diff(interval)) * oversample + 1, endpoint=True)
     L_legendre = np.polynomial.legendre.legval(x=x, c=np.eye(n_regressors)).T
 
     return L_legendre
@@ -317,8 +314,6 @@ class Event(Regressor):
         return self.betas.groupby(level=['event type', 'covariate']).apply(_dotproduct_timecourse, L)
 
     def get_basis_function(self, oversample=1):
-
-        n_timepoints = (self.interval[1] - self.interval[0]) / self.sample_duration
 
         timepoints = np.arange(self.interval[0], 
                                self.interval[1] + (1./self.sample_rate/oversample), 
