@@ -1,5 +1,6 @@
 import numpy as np
 from scipy import signal
+import pandas as pd
 
 def get_proper_interval(interval, sample_duration):
     interval = np.array(interval)
@@ -37,3 +38,24 @@ def double_gamma_with_d(x, a1=6, a2=12, b1=0.9, b2=0.9, c=0.35, d1=5.4, d2=10.8)
     y[x < 0] = 0
     y /= y.max()
     return y
+
+def get_time_to_peak_from_timecourse(tc, cutoff=1., negative_peak=False):
+    results = []
+    
+    for c in tc:
+        
+        tc_ = tc[c] * -1 if negative_peak else tc[c]
+        
+        peaks, _ = signal.find_peaks(tc_)
+        
+        r = pd.DataFrame([{'time to peak':p} for p in peaks])
+        r['prominence'], _, _ = signal.peak_prominences(tc_, peaks)
+        r['time to peak'] = tc.index.get_level_values('time')[peaks]
+        r['area'] = c
+        
+        r = r[r.prominence >= cutoff * r.prominence.max()].sort_values('prominence', ascending=False)
+        r['peak'] = r['time to peak'].rank().astype(int)
+        
+        results.append(r)
+        
+    return pd.concat(results, ignore_index=True)

@@ -10,7 +10,7 @@ import scipy as sp
 from scipy import signal
 import pandas as pd
 import warnings
-from .utils import get_proper_interval, double_gamma_with_d
+from .utils import get_proper_interval, double_gamma_with_d, get_time_to_peak_from_timecourse
 
 def _create_fir_basis(interval, sample_rate, n_regressors, oversample=1):
     """"""
@@ -362,6 +362,17 @@ class Event(Regressor):
         self.X = pd.DataFrame(X_,
                               columns=self.X.columns,
                               index=self.fitter.input_signal.index)
+
+
+    def get_time_to_peak(self, oversample=20, cutoff=1.0, negative_peak=False):
+        return self.get_timecourses(oversample=oversample)\
+                   .groupby(['event type', 'covariate'], as_index=False)\
+                   .apply(get_time_to_peak_from_timecourse, 
+                          negative_peak=negative_peak,
+                          cutoff=cutoff)\
+                   .reset_index(level=[ -1], drop=True)\
+                   .pivot(columns='area', index='peak')
+                   
 
 
 def _dotproduct_timecourse(d, L):

@@ -4,6 +4,7 @@ import pandas as pd
 from sklearn import linear_model
 import scipy as sp
 from .plotting import plot_timecourses
+from .utils import get_time_to_peak_from_timecourse
 
 class ResponseFytter(object):
     """ResponseFytter takes an input signal and performs deconvolution on it. 
@@ -61,8 +62,7 @@ class ResponseFytter(object):
         self._add_regressor(intercept)
 
     def add_confounds(self, name, confound):
-        """ 
-        Add a timeseries or set of timeseries to the general
+        """Add a timeseries or set of timeseries to the general
         design matrix as a confound
 
         Parameters
@@ -130,9 +130,9 @@ class ResponseFytter(object):
 
 
     def regress(self, type='ols', cv=20, alphas=None, store_residuals=False):
-        """
-        regress a created design matrix on the input_data, creating internal
-        variables betas, residuals, rank and s. 
+        """Regress a created design matrix on the input_data.
+        
+        Creates internal variables betas, residuals, rank and s. 
         The beta values are then injected into the event_type objects the
         response_fitter contains. 
 
@@ -322,6 +322,21 @@ class ResponseFytter(object):
         if remove_incomplete_epochs:
             epochs = epochs[~epochs.isnull().any(1)]
         return epochs
+
+
+    def get_time_to_peak(self, oversample=None, cutoff=1.0, negative_peak=False):
+        
+        if oversample is None:
+            oversample = self.oversample_design_matrix
+
+        return self.get_timecourses(oversample=oversample)\
+                   .groupby(['event type', 'covariate'], as_index=False)\
+                   .apply(get_time_to_peak_from_timecourse, 
+                          negative_peak=negative_peak,
+                          cutoff=cutoff)\
+                   .reset_index(level=[ -1], drop=True)\
+                   .pivot_table(columns='area', index='peak')[['time to peak', 'prominence']]
+                   
 
 
 class ConcatenatedResponseFytter(ResponseFytter):
