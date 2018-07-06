@@ -5,3 +5,4 @@ sphinx-rtd-theme
 scipy
 numpydoc
 sklearn
+nilearn
