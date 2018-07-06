@@ -203,6 +203,6 @@ texinfo_documents = [
 
 
 import mock
-MOCK_MODULES = ['pystan', 'pymc3', 'theano']
+MOCK_MODULES = ['pystan', 'pymc3', 'theano', 'theano.tensor']
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = mock.Mock()
