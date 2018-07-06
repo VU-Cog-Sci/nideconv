@@ -10,6 +10,13 @@ import logging
 
 class GroupResponseFytter(object):
 
+    """Can fit a group of individual subjects and/or
+    runs using a high-level interface.
+
+
+
+    """
+
     def __init__(self,
                  timeseries,
                  behavior,

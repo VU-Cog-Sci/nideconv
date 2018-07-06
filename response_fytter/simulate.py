@@ -20,8 +20,16 @@ def simulate_fmri_experiment(conditions=None,
     The conditions-variable is a list of dictionaries, each including a mu_group and mu_std-field
     to indicate the mean impulse height, as well as the standard deviation across subjects.
     It also includes a n_trials-field to simulate the number of trials for that condition and
-    potentially a 'name'-field to label the condition.
+    potentially a 'name'-field to label the condition. It can also include an `onsets'-field
+    to manually enter a set of onset times for that condition.
     The sd of the noise in the signal is always unity.
+
+
+    Example
+    --------
+    >>> data, onsets, params = simulate_fmri_experiment()
+    >>> print(data.head())
+
     """
     
     data = []
