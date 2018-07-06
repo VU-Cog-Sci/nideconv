@@ -6,3 +6,5 @@ scipy
 numpydoc
 sklearn
 nilearn
+pymc3
+pystan
