@@ -4,3 +4,4 @@ sphinx-gallery
 sphinx-rtd-theme
 scipy
 numpydoc
+sklearn
