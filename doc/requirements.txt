@@ -1,0 +1,5 @@
+sphinx
+matplotlib
+git+https://github.com/sphinx-gallery/sphinx-gallery
+sphinx-rtd-theme
+scipy
