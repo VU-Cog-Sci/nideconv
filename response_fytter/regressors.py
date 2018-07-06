@@ -110,8 +110,8 @@ class Intercept(Confound):
 
 class Event(Regressor):
     """Event is a class that encapsulates the creation and conversion
-    of design matrices and resulting beta weights for specific event types. 
-    Design matrices for an event type can be built up of different basis sets,
+    of design matrices and resulting beta weights for specific event_types. 
+    Design matrices for an event_type can be built up of different basis sets,
     and one can choose the time interval over which to fit the response. """
     def __init__(self, 
                 name, 
@@ -266,7 +266,7 @@ class Event(Regressor):
     
     def create_design_matrix(self, oversample=1):
         """
-        create_design_matrix creates the design matrix for this event type by
+        create_design_matrix creates the design matrix for this event_type by
         iterating over covariates. 
         
         """

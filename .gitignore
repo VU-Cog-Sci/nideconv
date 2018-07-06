@@ -61,3 +61,5 @@ target/
 
 # Apple shit
 .DS_Store
+
+*.pkl

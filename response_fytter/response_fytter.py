@@ -4,11 +4,13 @@ import pandas as pd
 from sklearn import linear_model
 import scipy as sp
 from .plotting import plot_timecourses
+from nilearn import input_data, image
+from nilearn._utils import load_niimg
 
 class ResponseFytter(object):
     """ResponseFytter takes an input signal and performs deconvolution on it. 
     To do this, it requires event times, and possible covariates.
-    ResponseFytter can, for each event type, use different basis function sets,
+    ResponseFytter can, for each event_type, use different basis function sets,
     see Event."""
     def __init__(self,
                  input_signal,
@@ -95,12 +97,12 @@ class ResponseFytter(object):
                   covariates=None,
                   **kwargs):
         """
-        create design matrix for a given event type.
+        create design matrix for a given event_type.
 
         Parameters
         ----------
         event_name : string
-            Name of the event type, used as key to lookup this event type's
+            Name of the event_type, used as key to lookup this event_type's
             characteristics
 
         **kwargs : dict
@@ -189,7 +191,6 @@ class ResponseFytter(object):
         self.betas = pd.DataFrame(self.betas, 
                                   index=self.X.columns,
                                   columns=self.input_signal.columns)
-        #self.betas.index.set_names(['event_type','covariate', 'regressor'], inplace=True)
 
         for key in self.events:
             self.events[key].betas = self.betas.loc[[key]]
@@ -322,7 +323,6 @@ class ResponseFytter(object):
         if remove_incomplete_epochs:
             epochs = epochs[~epochs.isnull().any(1)]
         return epochs
-
 
 class ConcatenatedResponseFytter(ResponseFytter):
 

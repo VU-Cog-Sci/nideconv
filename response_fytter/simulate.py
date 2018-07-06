@@ -73,7 +73,7 @@ def simulate_fmri_experiment(conditions=None,
 
                 onsets = np.random.choice(onsets, 
                                           n_trials,
-                                          replace=False)
+                                          replace=True)
 
                 signals[i, (onsets / TR).astype(int)] = parameters.loc[subj_idx, name]
                 
@@ -99,10 +99,9 @@ def simulate_fmri_experiment(conditions=None,
             
                 
             data.append(tmp)
-            
+
     data = pd.concat(data).set_index(['subj_idx', 'run', 't'])
     
     onsets = pd.concat(all_onsets).set_index(['subj_idx', 'run', 'trial_type'])
     
     return data, onsets, parameters
-

@@ -260,6 +260,13 @@ class GroupResponseFytter(object):
             
             tc = tc[np.in1d(tc['event type'], event_types)]
 
+        if covariates is not None:
+
+            if type(covariates) is str:
+                covariates = [covariates]
+            
+            tc = tc[np.in1d(tc['covariate'], covariates)]
+
         return plot_timecourses(tc,
                                 plots=plots,
                                 col=col,
