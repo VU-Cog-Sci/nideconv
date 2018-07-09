@@ -25,13 +25,13 @@ CLASSIFIERS = ["Development Status :: 3 - Alpha",
                "Topic :: Scientific/Engineering"]
 
 # Description should be a one-liner:
-description = "response_fytter: a package to fit response time-courses"
+description = "nideconv: a package to fit response time-courses"
 # Long description will go up on the pypi page
 long_description = """
 
-ResponseFytter
+Nideconv
 ========
-response_fytter is a package that allows you to perform 
+Nideconv is a package that allows you to perform 
 impulse response shape fitting on time series data, 
 in order to estimate event-related signals. 
 
@@ -52,7 +52,7 @@ for designs in which the durations of the events vary.
 
 
 In neuroscience, the inspection of the event-related signals 
-such as those estimated by response_fytter is essential 
+such as those estimated by nideconv is essential 
 for a thorough understanding of one's data. Researchers may 
 overlook essential patterns in their data when blindly 
 running GLM analyses without looking at the impulse response shapes.
@@ -60,25 +60,26 @@ running GLM analyses without looking at the impulse response shapes.
 To get started using these components in your own software, please go to the
 repository README_.
 
-.. _README: https://github.com/VuCogSci/response_fytter/blob/master/README.md
+.. _README: https://github.com/VuCogSci/nideconv/blob/master/README.md
 
 License
 =======
-``response_fytter`` is licensed under the terms of the MIT license. See the file
+``nideconv`` is licensed under the terms of the MIT license. See the file
 "LICENSE" for information on the history of this software, terms & conditions
 for usage, and a DISCLAIMER OF ALL WARRANTIES.
 
 All trademarks referenced herein are property of their respective holders.
 
-Copyright (c) 2017--, Tomas Knapen, Vrije Universiteit & Spinoza Centre for Neuroimaging, Amsterdam.
+Copyright (c) 2017--, Gilles de Hollander & Tomas Knapen, 
+Vrije Universiteit & Spinoza Centre for Neuroimaging, Amsterdam.
 """
 
-NAME = "response_fytter"
-MAINTAINER = "Tomas Knapen"
-MAINTAINER_EMAIL = "tknapen@gmail.com"
+NAME = "nideconv"
+MAINTAINER = "Gilles de Hollander"
+MAINTAINER_EMAIL = "gilles.de.hollander@gmail.com"
 DESCRIPTION = description
 LONG_DESCRIPTION = long_description
-URL = "http://github.com/uwescience/response_fytter"
+URL = "https://github.com/VuCogSci/nideconv"
 DOWNLOAD_URL = ""
 LICENSE = "MIT"
 AUTHOR = "Tomas Knapen"
@@ -88,5 +89,5 @@ MAJOR = _version_major
 MINOR = _version_minor
 MICRO = _version_micro
 VERSION = __version__
-PACKAGE_DATA = {'response_fytter': [pjoin('data', '*')]}
+PACKAGE_DATA = {'nideconv': [pjoin('data', '*')]}
 REQUIRES = ["numpy","scipy","sklearn"]
