@@ -56,7 +56,7 @@ data, onsets, parameters = simulate.simulate_fmri_experiment(conditions,
 from nideconv.utils import double_gamma_with_d
 import numpy as np
 
-plt.figure(figsize=(12, 5))
+plt.figure(figsize=(8, 2.5))
 
 t = np.linspace(0, 20, 100)
 ax1 = plt.subplot(121)
@@ -80,7 +80,7 @@ sns.despine()
 ##############################################################################
 # Plot simulated data
 # -------------------
-data.plot(c='k')
+data.loc[1, 1].plot(c='k')
 sns.despine()
 
 for onset in cue_onsets:
@@ -158,13 +158,13 @@ stim2_response = double_gamma_with_d(t-12)
 palette2 = sns.color_palette('Set2')
 
 plt.fill_between([0, 20],  -.5, -.6, color=palette2[0])
+plt.plot([[0, 20], [0, 20]], [-.5, 0], color=palette2[0])
 plt.fill_between([1, 21],  -.6, -.7, color=palette2[1])
+plt.plot([[1, 21], [1, 21]], [-.6, 0], color=palette2[1])
 plt.fill_between([10, 30],  -.7, -.8, color=palette2[2])
+plt.plot([[10, 30], [10, 30]], [-.7, 0], color=palette2[2])
 plt.fill_between([12, 32],  -.8, -.9, color=palette2[3])
-plt.axvline(0, c=palette2[0], ymin=.2, ymax=.5)
-plt.axvline(1, c=palette2[1], ymin=.2, ymax=.5)
-plt.axvline(10, c=palette2[2], ymin=.2, ymax=.5)
-plt.axvline(12, c=palette2[3], ymin=.2, ymax=.5)
+plt.plot([[12, 32], [12, 32]], [-.8, 0], color=palette2[3])
             
 
 plt.plot(t, cue1_response, c=palette2[0], ls='--', label='Cue 1-related activity')
@@ -191,17 +191,23 @@ plt.title('Illustration of overlap problem')
 # An often-used solution to the "overlap problem" is to assume a 
 # `linear time-invariant system 
 # <https://en.wikipedia.org/wiki/Linear_time-invariant_theory>`_. 
-# This means that you assume that overlapping responses
-# add up linearly.
-# Assuming this linearity, the deconvolution comes down to solving a linear
-# sytem: every timepoint is a linear combination of the overlapping responses.
-# We just need to find the 'weights' of the responses.
+# This means that you assume that overlapping responses influencing time point
+# :math:`t` add up linearly.
+# Assuming this linearity, the deconvolution boils down to solving a linear
+# sytem: every timepoint :math:`y_t` from signal :math:`Y` is a linear 
+# combination of the overlapping responses. These responses are modeled
+# by a set of basis functions in matrix :math:`X`.
+# We just need to find the 'weights' of the responses :math:`\beta`.:
+# 
+# .. math:: Y = X\beta
 #
 # We can do this using a General Linear Model (GLM) and its closed-form solution
 # ordinary least-squares (OLS).
 #
+# .. math:: \hat{\beta} = (X^TX)^{-1} X^TY
+#
 # This solution is part of the main functionality of nideconv. 
-# and can be used by creating a `ResponseFitter`-object:
+# and can be applied by creating a `ResponseFitter`-object:
 rf =nideconv.ResponseFitter(input_signal=data,
                             sample_rate=1)
 
@@ -216,10 +222,10 @@ rf.add_event(event_name='stimulus',
              interval=[0,20])
 
 #############################################################################
-# Nideconv automatically creates a design matrix.
+# Nideconv aumatically creates a design matrix.
 # By default, it does so using 'Finite Impulse
-# Response'-regressors. Each of these regressors corresponds to a different 
-# event and temporal offset. Such a  design matrix looks like this:
+# Response'-regressors (FIR). Each one of these regressors corresponds
+# to a different event and temporal offset. Such a  design matrix looks like this:
 
 sns.heatmap(rf.X)
 print(rf.X)
@@ -230,13 +236,6 @@ print(rf.X)
 
 #############################################################################
 # Now we can solve this linear system using ordinary least squares:
-#
-# .. math:: Y = X\beta
-#
-# where :math:`Y` is the target signal, :math:`X` is the design_matrix, and 
-# :math:`\beta` are the estimated parameters.
-#
-# :math:`\beta` can be estimated using deconv as follows:
 rf.fit()
 print(rf.betas)
 
@@ -268,4 +267,5 @@ plt.legend()
 #############################################################################
 # References
 # -----------
-# .. [1] Glover et al., 1999
+# .. [1] Glover, G. H. (1999). Deconvolution of impulse response in 
+# event-related BOLD fMRI. NeuroImage, 9(4), 416–429.

@@ -20,6 +20,9 @@ and the Spinoza Centre for Neuroimaging by Gilles de Hollander and Tomas Knapen.
 
    installation
    tutorials/plot_what_is_deconvolution
+   tutorials/plot_basis_functions
+   tutorials/plot_group_analysis
+   tutorials/plot_bayesian_analysis
 
 .. toctree::
    :maxdepth: 2
