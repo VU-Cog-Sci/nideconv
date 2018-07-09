@@ -88,7 +88,7 @@ class ResponseFitter(object):
 
     def add_event(self,
                   event_name,
-                  onset_times=None, 
+                  onsets=None, 
                   basis_set='fir', 
                   interval=[0,10], 
                   n_regressors=None, 
@@ -115,7 +115,7 @@ class ResponseFitter(object):
         assert event_name not in self.X.columns.get_level_values(0), "The event_name %s is already in use" % event_name
 
         ev = Event(name=event_name, 
-                   onset_times=onset_times,
+                   onsets=onsets,
                    basis_set=basis_set,
                    interval=interval,
                    n_regressors=n_regressors,

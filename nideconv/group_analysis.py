@@ -138,7 +138,7 @@ class GroupResponseFitter(object):
                         durations = None
 
                     self.response_fitters[col].add_event(e,
-                                                       onset_times=self.onsets.loc[col + (e,), 'onset'],
+                                                       onsets=self.onsets.loc[col + (e,), 'onset'],
                                                        basis_set=basis_set,
                                                        interval=interval,
                                                        n_regressors=n_regressors,
