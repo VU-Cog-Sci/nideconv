@@ -1,25 +1,25 @@
-Installing response_fytter
+Installing nideconv
 ===================
 
 From PyPi
 ~~~~~~~~~
-When the first Beta of response_fytter will be released, it will be possible
-to install response_fytter from pip: ::
+When the first Beta of nideconv will be released, it will be possible
+to install nideconv from pip: ::
     
-   pip install response_fytter 
+   pip install nideconv 
 
 From Github
 ~~~~~~~~~~~
-Right now you can clone the main branch of response_fytter using git ::
+Right now you can clone the main branch of nideconv using git ::
 
-   git clone https://github.com/VU-Cog-Sci
+   git clone https://github.com/VU-Cog-Sci/nideconv
 
 Or download and unpack the zip file from Github under **Clone and download** ->
 **Download ZIP**
 
 Then go to the directory in which the package was cloned ::
 
-   cd response_fytter
+   cd nideconv
 
 and install the Python package ::
 

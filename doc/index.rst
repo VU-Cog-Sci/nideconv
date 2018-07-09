@@ -1,14 +1,14 @@
-.. response_fytter documentation master file, created by
+.. nideconv documentation master file, created by
    sphinx-quickstart on Sat Nov 11 16:45:31 2017.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to response_fytter
+Welcome to nideconv
 ===========================================
 
 .. image:: _static/deconv.png
 
-Response_fytter is an easy-to use Python library that can perform automated 
+Nideconv is an easy-to use Python library that can perform automated 
 deconvolution of (primarily) slowly fluctuating (proxies of) neural signals like 
 pupil size and BOLD fMRI. It was developed at the Vrije Universiteit 
 and the Spinoza Centre for Neuroimaging by Gilles de Hollander and Tomas Knapen.
@@ -31,7 +31,7 @@ and the Spinoza Centre for Neuroimaging by Gilles de Hollander and Tomas Knapen.
    :maxdepth: 3
    :caption: Reference
 
-   response_fytter/index
+   response_fitter/index
    group_analysis/index
    nifti/index
    simulate/index
