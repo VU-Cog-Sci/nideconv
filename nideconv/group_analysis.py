@@ -157,10 +157,10 @@ class GroupResponseFitter(object):
                                      .apply(ConcatenatedResponseFitter)
 
             for concat_rf in self.concat_response_fitters:
-                concat_rf.regress()
+                concat_rf.fit()
         else:
             for rf in self.response_fitters:
-                rf.regress()
+                rf.fit()
 
     def get_timecourses(self, oversample=None,
                         concatenate_runs=None):

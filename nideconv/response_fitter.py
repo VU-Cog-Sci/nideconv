@@ -130,7 +130,7 @@ class ResponseFitter(object):
 
 
 
-    def regress(self, type='ols', cv=20, alphas=None, store_residuals=False):
+    def fit(self, type='ols', cv=20, alphas=None, store_residuals=False):
         """Regress a created design matrix on the input_data.
         
         Creates internal variables betas, residuals, rank and s. 
@@ -286,7 +286,7 @@ class ResponseFitter(object):
         if self.X.shape[1] == 0:
             signal = self.input_signal
         else:
-            self.regress(store_residuals=True)
+            self.fit(store_residuals=True)
             signal = self._residuals
             
             
