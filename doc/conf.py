@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# response_fytter documentation build configuration file, created by
+# nideconv documentation build configuration file, created by
 # sphinx-quickstart on Sat Nov 11 16:45:31 2017.
 #
 # This file is execfile()d with the current directory set to its
@@ -57,7 +57,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = 'response_fytter'
+project = 'nideconv'
 copyright = '2017, Gilles de Hollander & Tomas Knapen'
 author = ['Gilles de Hollander', 'Tomas Knapen']
 
@@ -79,7 +79,7 @@ sphinx_gallery_conf = {
     # path where to save gallery generated examples
     'gallery_dirs': ['auto_examples', 'tutorials'],
     # To auto-generate example sections in the API
-    'doc_module': ('response_fytter',),
+    'doc_module': ('nideconv',),
     # Auto-generated mini-galleries go here
     'backreferences_dir': 'gen_api'
 }
@@ -148,7 +148,7 @@ html_sidebars = {
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'response_fytterdoc'
+htmlhelp_basename = 'nideconvdoc'
 
 
 # -- Options for LaTeX output ---------------------------------------------
@@ -175,7 +175,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'response_fytter.tex', 'response\\_fytter Documentation',
+    (master_doc, 'nideconv.tex', 'nideconv Documentation',
      'Tomas Knapen', 'manual'),
 ]
 
@@ -185,7 +185,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'response_fytter', 'response_fytter Documentation',
+    (master_doc, 'nideconv', 'nideconv Documentation',
      [author], 1)
 ]
 
@@ -196,8 +196,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'response_fytter', 'response_fytter Documentation',
-     author, 'response_fytter', 'One line description of project.',
+    (master_doc, 'nideconv', 'nideconv Documentation',
+     author, 'nideconv', 'One line description of project.',
      'Miscellaneous'),
 ]
 

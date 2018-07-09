@@ -9,7 +9,7 @@ are close together in time, these event-related responses will contaminate each 
 
 """
 
-from response_fytter import simulate
+from nideconv import simulate
 import matplotlib.pyplot as plt
 import seaborn as sns
 sns.set_style('white')
@@ -64,7 +64,7 @@ plt.gcf().set_size_inches(10, 4)
 # --------------------------------
 # Because we simulated the data, we know that the event-related responses should
 # exactly follow the *canonical Hemodynamic Response Function* [1]_are
-from response_fytter.utils import double_gamma_with_d
+from nideconv.utils import double_gamma_with_d
 import numpy as np
 
 plt.figure(figsize=(12, 4))

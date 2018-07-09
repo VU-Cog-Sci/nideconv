@@ -1,4 +1,4 @@
-from .response_fytter import ResponseFytter
+from .response_fitter import ResponseFitter
 from nilearn._utils import load_niimg
 from nilearn import input_data, image
 import pandas as pd
@@ -6,7 +6,7 @@ import numpy as np
 import logging
 
 
-class NiftiResponseFytter(ResponseFytter):
+class NiftiResponseFitter(ResponseFitter):
 
     def __init__(self,
                  func_img,
@@ -40,7 +40,7 @@ class NiftiResponseFytter(ResponseFytter):
         input_signal = self.masker.fit_transform(func_img) 
         self.n_voxels = input_signal.shape[1]
 
-        super(NiftiResponseFytter, self).__init__(input_signal=input_signal,
+        super(NiftiResponseFitter, self).__init__(input_signal=input_signal,
                                            sample_rate=sample_rate,
                                            oversample_design_matrix=oversample_design_matrix,
                                            add_intercept=add_intercept,
@@ -49,11 +49,11 @@ class NiftiResponseFytter(ResponseFytter):
 
     
     def ridge_regress(self, *args, **kwargs):
-        raise NotImplementedError('Not implemented for NiftiResponseFytter')
+        raise NotImplementedError('Not implemented for NiftiResponseFitter')
 
 
     def predict_from_design_matrix(self, X=None):
-        prediction = super(NiftiResponseFytter, self).predict_from_design_matrix(X)
+        prediction = super(NiftiResponseFitter, self).predict_from_design_matrix(X)
         return self._inverse_transform(prediction)
 
     def get_timecourses(self, 
@@ -65,7 +65,7 @@ class NiftiResponseFytter(ResponseFytter):
         if len(self.events) is 0:
             raise Exception("No events were added")
 
-        timecourses = super(NiftiResponseFytter, self).get_timecourses(oversample=oversample,
+        timecourses = super(NiftiResponseFitter, self).get_timecourses(oversample=oversample,
                                                                        melt=False,
                                                                        **kwargs)
 
@@ -102,7 +102,7 @@ class NiftiResponseFytter(ResponseFytter):
         return self.masker.inverse_transform(data)
 
 
-class GroupNiftiResponseFytter(object):
+class GroupNiftiResponseFitter(object):
 
 
     def __init__(self,
@@ -180,7 +180,7 @@ class GroupNiftiResponseFytter(object):
 
             logging.info('Fitting subject {subj_idx}, run {run}'.format(**image))
             
-            fitter = NiftiResponseFytter(image['func_img'],
+            fitter = NiftiResponseFitter(image['func_img'],
                                          image['sample_rate'],
                                          image['mask'],
                                          self.oversample_design_matrix,
