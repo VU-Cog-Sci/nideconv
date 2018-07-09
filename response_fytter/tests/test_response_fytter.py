@@ -89,7 +89,7 @@ class ResponseFytterTest(unittest.TestCase):
 
         self.rfy = response_fytter.ResponseFytter(
             input_signal=self.input_data, 
-            input_sample_frequency=self.signal_sample_frequency)
+            sample_rate=self.signal_sample_frequency)
 
         # first event type, no covariate
         self.rfy.add_event(
