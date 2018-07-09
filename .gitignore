@@ -53,6 +53,7 @@ coverage.xml
 # Sphinx documentation
 doc/_build
 doc/auto_examples
+doc/tutorials
 doc/gen_modules
 doc/modules/generated
 doc/gen_api
