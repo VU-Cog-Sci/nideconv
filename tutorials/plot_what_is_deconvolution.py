@@ -249,9 +249,11 @@ print(tc)
 
 #############################################################################
 #  as well as plot these responses...
+sns.set_palette(palette)
 rf.plot_timecourses()
 plt.suptitle('Linear deconvolution using GLM and FIR')
 plt.title('')
+plt.legend()
 
 #############################################################################
 # As you can see, these estimated responses are much closer to the 
