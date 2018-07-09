@@ -10,7 +10,7 @@ import scipy as sp
 from scipy import signal
 import pandas as pd
 import warnings
-from .utils import get_proper_interval, double_gamma_with_d
+from .utils import get_proper_interval, double_gamma_with_d, get_time_to_peak_from_timecourse
 
 def _create_fir_basis(interval, sample_rate, n_regressors, oversample=1):
     """"""
@@ -60,11 +60,8 @@ def _create_fourier_basis(interval, sample_rate, n_regressors, oversample=1):
 
 def _create_legendre_basis(interval, sample_rate, n_regressors, oversample=1):
     """"""
-    timepoints = np.arange(interval[0],
-                           interval[1] + (1./sample_rate/oversample),
-                           1./sample_rate / oversample)    
 
-    x = np.linspace(-1, 1, len(timepoints) * oversample, endpoint=True)
+    x = np.linspace(-1, 1, int(np.diff(interval)) * oversample + 1, endpoint=True)
     L_legendre = np.polynomial.legendre.legval(x=x, c=np.eye(n_regressors)).T
 
     return L_legendre
@@ -318,8 +315,6 @@ class Event(Regressor):
 
     def get_basis_function(self, oversample=1):
 
-        n_timepoints = (self.interval[1] - self.interval[0]) / self.sample_duration
-
         timepoints = np.arange(self.interval[0], 
                                self.interval[1] + (1./self.sample_rate/oversample), 
                                1./self.sample_rate / oversample) 
@@ -367,6 +362,17 @@ class Event(Regressor):
         self.X = pd.DataFrame(X_,
                               columns=self.X.columns,
                               index=self.fitter.input_signal.index)
+
+
+    def get_time_to_peak(self, oversample=20, cutoff=1.0, negative_peak=False):
+        return self.get_timecourses(oversample=oversample)\
+                   .groupby(['event type', 'covariate'], as_index=False)\
+                   .apply(get_time_to_peak_from_timecourse, 
+                          negative_peak=negative_peak,
+                          cutoff=cutoff)\
+                   .reset_index(level=[ -1], drop=True)\
+                   .pivot(columns='area', index='peak')
+                   
 
 
 def _dotproduct_timecourse(d, L):

@@ -1,5 +1,5 @@
 import unittest
-import response_fytter
+import nideconv
 import numpy as np
 from scipy import signal
 
@@ -87,9 +87,9 @@ class ResponseFytterTest(unittest.TestCase):
                             event_2_sd=0,
                             noise_gain=noise_gain)
 
-        self.rfy = response_fytter.ResponseFytter(
+        self.rfy = nideconv.ResponseFitter(
             input_signal=self.input_data, 
-            input_sample_frequency=self.signal_sample_frequency)
+            sample_rate=self.signal_sample_frequency)
 
         # first event type, no covariate
         self.rfy.add_event(

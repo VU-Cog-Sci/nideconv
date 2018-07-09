@@ -1,4 +1,4 @@
-from .response_fytter import ResponseFytter, ConcatenatedResponseFytter
+from .response_fitter import ResponseFitter, ConcatenatedResponseFitter
 import numpy as np
 import pandas as pd
 import warnings
@@ -8,7 +8,7 @@ from .plotting import plot_timecourses
 import scipy as sp
 import logging
 
-class GroupResponseFytter(object):
+class GroupResponseFitter(object):
 
     """Can fit a group of individual subjects and/or
     runs using a high-level interface.
@@ -69,7 +69,7 @@ class GroupResponseFytter(object):
         self.response_fitters = pd.Series(index=index) 
 
         if self.index_columns is []:
-            raise Exception('GroupResponseFytter is only to be used for datasets with multiple subjects'
+            raise Exception('GroupDeconvolution is only to be used for datasets with multiple subjects'
                              'or runs')
         else:
             self.timeseries = self.timeseries.set_index(self.index_columns + ['t'])
@@ -81,15 +81,13 @@ class GroupResponseFytter(object):
                 self.confounds = self.confounds.set_index(self.index_columns + ['t'])
 
             for idx, ts in self.timeseries.groupby(level=self.index_columns):
-                rf = ResponseFytter(ts,
+                rf = ResponseFitter(ts,
                                     input_sample_rate,
                                     self.oversample_design_matrix,
                                     *args,
                                     **kwargs)
-                #self.response_fitters.append(rf)
                 self.response_fitters.loc[idx] = rf
                 if self.confounds is not None:
-                    #self.response_fitters[-1].add_confounds('confounds', self.confounds.loc[idx])
                     self.response_fitters.loc[idx].add_confounds('confounds', self.confounds.loc[idx])
 
 
@@ -156,7 +154,7 @@ class GroupResponseFytter(object):
         if concatenate_runs:
             self.concat_response_fitters = \
                 self.response_fitters.groupby('subj_idx') \
-                                     .apply(ConcatenatedResponseFytter)
+                                     .apply(ConcatenatedResponseFitter)
 
             for concat_rf in self.concat_response_fitters:
                 concat_rf.regress()
@@ -175,7 +173,7 @@ class GroupResponseFytter(object):
 
         if concatenate_runs:
             if not hasattr(self, 'concat_response_fitters'):
-                raise Exception('GroupResponseFytter not yet fitted')
+                raise Exception('GroupDeconvolution not yet fitted')
             rfs = self.concat_response_fitters
         else:
             rfs = self.response_fitters

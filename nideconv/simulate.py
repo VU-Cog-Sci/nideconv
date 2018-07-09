@@ -14,7 +14,8 @@ def simulate_fmri_experiment(conditions=None,
                              noise_level=1,
                              n_rois=1,
                              oversample=20,
-                             kernel='double_hrf'):
+                             kernel='double_hrf',
+                             kernel_pars={}):
     """
     Simulates an fMRI experiment and returns a pandas
     DataFrame with the resulting time series in an analysis-ready format. 
@@ -141,16 +142,21 @@ def simulate_fmri_experiment(conditions=None,
                dtype='int64', name='subj_idx')
 
     """
+
+    if kernel != 'double_hrf':
+        raise NotImplementedError()
     
     data = []
 
     if conditions is None:
         conditions = [{'name':'A',
                        'mu_group':1,
-                       'std_group':0},
+                       'std_group':0,},
                        {'name':'B',
                        'mu_group':2,
                        'std_group':0}]
+    
+    conditions = pd.DataFrame(conditions).set_index('name')
     
     sample_rate = 1./TR
     
@@ -160,10 +166,10 @@ def simulate_fmri_experiment(conditions=None,
     parameters = []
     for subj_idx in np.arange(1, n_subjects+1):    
         
-        for condition in conditions:
+        for i, condition in conditions.iterrows():
             amplitude = sp.stats.norm(loc=condition['mu_group'], scale=condition['std_group']).rvs()
             parameters.append({'subj_idx':subj_idx,
-                               'trial_type':condition['name'],
+                               'trial_type':condition.name,
                                'amplitude':amplitude})    
             
     parameters = pd.DataFrame(parameters).set_index(['subj_idx', 'trial_type'])
@@ -174,36 +180,32 @@ def simulate_fmri_experiment(conditions=None,
             
             signals = np.zeros((len(conditions), len(frametimes)))
 
-            for i, condition in enumerate(conditions):
-                if 'name' in condition:
-                    name = condition['name']
+            for i, (_, condition) in enumerate(conditions.iterrows()):
+                if 'onsets' in condition:
+                    onsets = np.array(condition.onsets)
                 else:
-                    name = 'Condition %d' % (i+1)
-                    
+                    onsets = np.ones(0)
 
+                    while len(onsets) < n_trials:
+                        isis = np.random.gamma(run_duration / n_trials, 1, size=n_trials * 10)
+                        onsets = np.cumsum(isis)
+                        onsets = onsets[onsets < run_duration]
 
-                onsets = np.ones(0)
+                    onsets = np.random.choice(onsets, 
+                                              n_trials,
+                                              replace=False)
 
-                while len(onsets) < n_trials:
-                    isis = np.random.gamma(run_duration / n_trials, 1, size=n_trials * 10)
-                    onsets = np.cumsum(isis)
-                    onsets = onsets[onsets < run_duration]
-
-                onsets = np.random.choice(onsets, 
-                                          n_trials,
-                                          replace=True)
-
-                signals[i, (onsets / TR).astype(int)] = parameters.loc[subj_idx, name]
+                signals[i, (onsets / TR).astype(int)] = parameters.loc[subj_idx, condition.name]
                 
                 
                 all_onsets.append(pd.DataFrame({'onset':onsets}))
                 all_onsets[-1]['subj_idx'] = subj_idx
                 all_onsets[-1]['run'] = run
-                all_onsets[-1]['trial_type'] = name
+                all_onsets[-1]['trial_type'] = condition.name
                 
                 
             signal = signals.sum(0)
-            signal = convolve_with_function(signal, kernel, sample_rate)
+            signal = convolve_with_function(signal, kernel, sample_rate, **kernel_pars)
             signal = np.repeat(signal[:, np.newaxis], n_rois, 1)
             signal += np.random.randn(*signal.shape) * noise_level
             

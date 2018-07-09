@@ -7,8 +7,8 @@ from .plotting import plot_timecourses
 from nilearn import input_data, image
 from nilearn._utils import load_niimg
 
-class ResponseFytter(object):
-    """ResponseFytter takes an input signal and performs deconvolution on it. 
+class ResponseFitter(object):
+    """ResponseFitter takes an input signal and performs deconvolution on it. 
     To do this, it requires event times, and possible covariates.
     ResponseFytter can, for each event_type, use different basis function sets,
     see Event."""
@@ -17,7 +17,7 @@ class ResponseFytter(object):
                  sample_rate,
                  oversample_design_matrix=20,
                  add_intercept=True, **kwargs):
-        """ Initialize a ResponseFytter object.
+        """ Initialize a ResponseFitter object.
 
         Parameters
         ----------
@@ -30,9 +30,9 @@ class ResponseFytter(object):
             frequency in Hz at which input data are sampled
 
         **kwargs : dict
-            keyward arguments to be internalized by the ResponseFytter object
+            keyward arguments to be internalized by the ResponseFitter object
         """        
-        super(ResponseFytter, self).__init__()
+        super(ResponseFitter, self).__init__()
         self.__dict__.update(kwargs)
 
         self.sample_rate = sample_rate
@@ -63,8 +63,7 @@ class ResponseFytter(object):
         self._add_regressor(intercept)
 
     def add_confounds(self, name, confound):
-        """ 
-        Add a timeseries or set of timeseries to the general
+        """Add a timeseries or set of timeseries to the general
         design matrix as a confound
 
         Parameters
@@ -132,11 +131,11 @@ class ResponseFytter(object):
 
 
     def regress(self, type='ols', cv=20, alphas=None, store_residuals=False):
-        """
-        regress a created design matrix on the input_data, creating internal
-        variables betas, residuals, rank and s. 
+        """Regress a created design matrix on the input_data.
+        
+        Creates internal variables betas, residuals, rank and s. 
         The beta values are then injected into the event_type objects the
-        response_fitter contains. 
+        ResponseFitter contains. 
 
         Parameters
         ----------
@@ -279,7 +278,7 @@ class ResponseFytter(object):
         Return a matrix corresponding to specific onsets, within a given
         interval. Matrix size is (n_onsets, n_timepoints_within_interval).
 
-        Note that any events that are in the ResponseFytter-object will
+        Note that any events that are in the ResponseFitter-object will
         be regressed out before calculating the epochs.
         """
         
@@ -324,41 +323,57 @@ class ResponseFytter(object):
             epochs = epochs[~epochs.isnull().any(1)]
         return epochs
 
-class ConcatenatedResponseFytter(ResponseFytter):
+
+    def get_time_to_peak(self, oversample=None, cutoff=1.0, negative_peak=False):
+        
+        if oversample is None:
+            oversample = self.oversample_design_matrix
+
+        return self.get_timecourses(oversample=oversample)\
+                   .groupby(['event type', 'covariate'], as_index=False)\
+                   .apply(get_time_to_peak_from_timecourse, 
+                          negative_peak=negative_peak,
+                          cutoff=cutoff)\
+                   .reset_index(level=[ -1], drop=True)\
+                   .pivot_table(columns='area', index='peak')[['time to peak', 'prominence']]
+                   
 
 
-    def __init__(self, response_fytters):
+class ConcatenatedResponseFitter(ResponseFitter):
 
-        self.response_fytters = response_fytters
 
-        self.X = pd.concat([rf.X for rf in self.response_fytters]).fillna(0)
+    def __init__(self, response_fitters):
+
+        self.response_fitters = response_fitters
+
+        self.X = pd.concat([rf.X for rf in self.response_fitters]).fillna(0)
 
         for attr in ['sample_rate', 'oversample_design_matrix']:
-            check_properties_response_fytters(self.response_fytters, attr)
-            setattr(self, attr, getattr(self.response_fytters[0], attr))
+            check_properties_response_fitters(self.response_fitters, attr)
+            setattr(self, attr, getattr(self.response_fitters[0], attr))
 
 
-        self.input_signal = pd.concat([rf.input_signal for rf in self.response_fytters])
+        self.input_signal = pd.concat([rf.input_signal for rf in self.response_fitters])
 
         self.events =  {}
-        for rf in self.response_fytters:
+        for rf in self.response_fitters:
             self.events.update(rf.events)
 
 
     def add_intercept(self, *args, **kwargs):
-        raise Exception('ConcatenatedResponseFytter does not allow for adding'\
+        raise Exception('ConcatenatedResponseFitter does not allow for adding'\
                          'intercepts anymore. Do this in the original response '\
-                         'fytters that get concatenated')
+                         'fitters that get concatenated')
 
 
     def add_confounds(self, *args, **kwargs):
-        raise Exception('ConcatenatedResponseFytter does not allow for adding '\
+        raise Exception('ConcatenatedResponseFitter does not allow for adding '\
                          'confounds. Do this in the original response '\
                          'fytters that get concatenated')
 
 
     def add_event(self, *args, **kwargs):
-        raise Exception('ConcatenatedResponseFytter does not allow for adding'\
+        raise Exception('ConcatenatedResponseFitter does not allow for adding'\
                          'events.')
 
 
@@ -377,8 +392,8 @@ class ConcatenatedResponseFytter(ResponseFytter):
     def get_epochs(self, onsets, interval, remove_incomplete_epochs=True):
         raise NotImplementedError()
 
-def check_properties_response_fytters(response_fytters, attribute):
+def check_properties_response_fitters(response_fitters, attribute):
 
-    attribute_values = [getattr(rf, attribute) for rf in response_fytters]
+    attribute_values = [getattr(rf, attribute) for rf in response_fitters]
 
-    assert(all([v == attribute_values[0] for v in attribute_values])), "%s not equal across response fytters!" % attribute
+    assert(all([v == attribute_values[0] for v in attribute_values])), "%s not equal across response fitters!" % attribute

@@ -2,8 +2,8 @@ import os
 from setuptools import setup, find_packages
 PACKAGES = find_packages()
 
-# Get version and release info, which is all stored in response_fytter/version.py
-ver_file = os.path.join('response_fytter', 'version.py')
+# Get version and release info, which is all stored in nideconv/version.py
+ver_file = os.path.join('nideconv', 'version.py')
 with open(ver_file) as f:
     exec(f.read())
 
