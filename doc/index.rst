@@ -19,7 +19,7 @@ and the Spinoza Centre for Neuroimaging by Gilles de Hollander and Tomas Knapen.
    :caption: Getting started
 
    installation
-   auto_examples/plot_what_is_deconvolution
+   tutorials/plot_what_is_deconvolution
 
 .. toctree::
    :maxdepth: 2
@@ -34,5 +34,6 @@ and the Spinoza Centre for Neuroimaging by Gilles de Hollander and Tomas Knapen.
    response_fytter/index
    group_analysis/index
    nifti/index
+   simulate/index
 
 

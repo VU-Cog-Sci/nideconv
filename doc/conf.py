@@ -75,9 +75,9 @@ source_version = __version__
 # --- Sphinx Gallery ---
 sphinx_gallery_conf = {
     # path to your examples scripts
-    'examples_dirs': '../examples',
+    'examples_dirs': ['../examples', '../tutorials'],
     # path where to save gallery generated examples
-    'gallery_dirs': 'auto_examples',
+    'gallery_dirs': ['auto_examples', 'tutorials'],
     # To auto-generate example sections in the API
     'doc_module': ('response_fytter',),
     # Auto-generated mini-galleries go here
