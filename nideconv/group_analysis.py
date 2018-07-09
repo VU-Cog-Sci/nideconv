@@ -170,16 +170,16 @@ class GroupResponseFitter(object):
                                      .apply(ConcatenatedResponseFitter)
 
             for concat_rf in self.concat_response_fitters:
-                concat_rf.regress(type,
-                                  cv,
-                                  alphas,
-                                  store_residuals)
+                concat_rf.fit(type,
+                              cv,
+                              alphas,
+                              store_residuals)
         else:
             for rf in self.response_fitters:
-                rf.regress(type,
-                           cv,
-                           alphas,
-                           store_residuals)
+                rf.fit(type,
+                       cv,
+                       alphas,
+                       store_residuals)
 
     def get_timecourses(self,
                         oversample=None,
