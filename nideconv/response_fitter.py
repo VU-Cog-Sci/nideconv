@@ -1,6 +1,8 @@
 from .regressors import Event, Confound, Intercept
 import numpy as np
 import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
 from sklearn import linear_model
 import scipy as sp
 from .plotting import plot_timecourses
@@ -194,7 +196,9 @@ class ResponseFitter(object):
         for key in self.events:
             self.events[key].betas = self.betas.loc[[key]]
 
-    def predict_from_design_matrix(self, X=None):
+    def predict_from_design_matrix(self, 
+                                   X=None, 
+                                   melt=False):
         """
         predict a signal given a design matrix. Requires regression to have
         been run.
@@ -216,6 +220,14 @@ class ResponseFitter(object):
 
 
         prediction = self.X.dot(self.betas)
+        if melt:
+            prediction = prediction.reset_index()\
+                                   .melt(var_name='roi',
+                                         value_name='prediction',
+                                         id_vars='time')
+
+        else:
+            prediction.columns = ['prediction for %s' % c for c in prediction.columns]
 
         return prediction
 
@@ -337,6 +349,47 @@ class ResponseFitter(object):
                    .reset_index(level=[ -1], drop=True)\
                    .pivot_table(columns='area', index='peak')[['time to peak', 'prominence']]
                    
+    
+    def get_original_signal(self, melt=False):
+        if melt:
+            return self.input_signal.reset_index()\
+                                    .melt(var_name='roi',
+                                          value_name='signal',
+                                          id_vars='time')
+        else:
+            return self.input_signal
+
+    def plot_model_fit(self,
+                       xlim=None):
+        
+
+        n_rois = self.input_signal.shape[1]
+        if n_rois > 24:
+            raise Exception('Are you sure you want to plot {} areas?!'.format(n_rois))
+
+        signal = self.get_original_signal(melt=True)
+        prediction = self.predict_from_design_matrix(melt=True)
+
+        data = signal.merge(prediction)
+        
+        if n_rois < 4:
+            col_wrap = n_rois
+        else:
+            col_wrap = 4
+       
+        fac  = sns.FacetGrid(data, 
+                             col='roi',
+                             col_wrap=col_wrap,
+                             aspect=3)
+
+        fac.map(plt.plot, 'time', 'signal', color='k')
+        fac.map(plt.plot, 'time', 'prediction', color='r', lw=3)
+
+        if xlim is not None:
+            for ax in fac.axes.ravel():
+                ax.set_xlim(*xlim)
+
+        return fac
 
 
 class ConcatenatedResponseFitter(ResponseFitter):
