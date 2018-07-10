@@ -168,6 +168,10 @@ def simulate_fmri_experiment(conditions=None,
         
         for i, condition in conditions.iterrows():
             amplitude = sp.stats.norm(loc=condition['mu_group'], scale=condition['std_group']).rvs()
+
+            if n_subjects == 1:
+                amplitude = condition['mu_group']
+
             parameters.append({'subj_idx':subj_idx,
                                'trial_type':condition.name,
                                'amplitude':amplitude})    
