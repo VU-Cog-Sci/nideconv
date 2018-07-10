@@ -15,6 +15,8 @@ def plot_timecourses(tc,
                      sharey=False,
                      aspect=1.5,
                      col_order=None,
+                     size=3,
+                     legend=True,
                      *args,
                      **kwargs):
 
@@ -58,5 +60,7 @@ def plot_timecourses(tc,
 
         facs.append(fac)
 
+        if legend:
+            fac.add_legend()
 
     return facs
