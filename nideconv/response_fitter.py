@@ -151,8 +151,10 @@ class ResponseFitter(object):
                                 np.linalg.lstsq(self.X, self.input_signal, rcond=-1)
             self._send_betas_to_regressors()
 
+            prediction = self.X.dot(self.betas)
+
             if store_residuals:
-                self._residuals = self.input_signal - self.predict_from_design_matrix()
+                self._residuals = self.input_signal - prediction
 
         elif type == 'ridge':   # betas and residuals are internalized by ridge_regress
             if self.input_signal.shape[1] > 1:
