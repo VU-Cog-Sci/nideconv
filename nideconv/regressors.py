@@ -10,7 +10,10 @@ import scipy as sp
 from scipy import signal
 import pandas as pd
 import warnings
-from .utils import get_proper_interval, double_gamma_with_d, get_time_to_peak_from_timecourse
+from .utils import (get_proper_interval,
+                    double_gamma_with_d,
+                    get_time_to_peak_from_timecourse,
+                    double_gamma_with_d_time_derivative)
 
 def _create_fir_basis(interval, sample_rate, n_regressors, oversample=1):
     """"""
@@ -36,6 +39,15 @@ def _create_canonical_hrf_basis(interval, sample_rate, n_regressors, oversample=
     
     return double_gamma_with_d(timepoints)[:, np.newaxis]
 
+def _create_canonical_hrf_with_time_derivative_basis(interval, sample_rate, n_regressors, oversample=1):
+    timepoints = np.arange(interval[0], 
+                           interval[1] + (1./sample_rate/oversample), 
+                           1./sample_rate / oversample) 
+    
+    hrf = double_gamma_with_d(timepoints)
+    dt_hrf = double_gamma_with_d_time_derivative(timepoints)
+
+    return np.array([hrf, dt_hrf]).T
 
 def _create_fourier_basis(interval, sample_rate, n_regressors, oversample=1):
     """"""
@@ -217,6 +229,14 @@ class Event(Regressor):
 
                 self.n_regressors = 1
 
+            elif self.basis_set == 'canonical_hrf_with_time_derivative':
+                if (self.n_regressors is not None) and (self.n_regressors != 2):
+                    warnings.warn('With the canonical HRF with time derivative as a basis set,'
+                                   'you can have only TWO '
+                                  'regressors per covariate!')
+
+                self.n_regressors = 2
+
 
 
 
@@ -342,6 +362,14 @@ class Event(Regressor):
                                                 1,
                                                 oversample)
                 regressor_labels = ['canonical_hrf']
+
+            elif self.basis_set == 'canonical_hrf_with_time_derivative':
+                L = _create_canonical_hrf_with_time_derivative_basis(self.interval,
+                                                self.sample_rate,
+                                                2,
+                                                oversample)
+                regressor_labels = ['canonical_hrf', 'canonical_hrf_time_derivative']
+
         else:
             regressor_labels = ['custom_basis_function_%d' % i for i in range(1, self.n_regressors+1)]        
             L = np.zeros((self.basis_set.shape[0] * oversample, self.n_regressors))
