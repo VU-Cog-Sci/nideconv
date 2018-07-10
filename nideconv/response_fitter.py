@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 from sklearn import linear_model
 import scipy as sp
 from .plotting import plot_timecourses
+from nilearn import input_data, image
+from nilearn._utils import load_niimg
 from .utils import get_time_to_peak_from_timecourse
 
 class ResponseFitter(object):
@@ -265,7 +267,7 @@ class ResponseFitter(object):
                                   oversample=oversample)
         tc['subj_idx'] = 'dummy'
 
-        plot_timecourses(tc, *args, **kwargs)
+        return plot_timecourses(tc, *args, **kwargs)
 
     def get_rsq(self):
         """
