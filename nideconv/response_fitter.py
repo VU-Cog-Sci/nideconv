@@ -259,6 +259,7 @@ class ResponseFitter(object):
 
     def plot_timecourses(self,
                          oversample=None,
+                         legend=True,
                          *args,
                          **kwargs):
 
@@ -267,6 +268,7 @@ class ResponseFitter(object):
         tc['subj_idx'] = 'dummy'
 
         return plot_timecourses(tc, *args, **kwargs)
+        
 
     def get_rsq(self):
         """

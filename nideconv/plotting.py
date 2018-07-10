@@ -16,6 +16,7 @@ def plot_timecourses(tc,
                      aspect=1.5,
                      col_order=None,
                      size=3,
+                     legend=True,
                      *args,
                      **kwargs):
 
@@ -82,6 +83,9 @@ def plot_timecourses(tc,
 
         if len(fac.col_names) == 1:
             fac.set_titles('')
+
+        if legend:
+            fac.add_legend()
 
 
     return facs
