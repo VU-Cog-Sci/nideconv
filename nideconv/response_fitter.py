@@ -394,6 +394,9 @@ class ResponseFitter(object):
         if legend:
             fac.add_legend()
 
+        fac.set_ylabels('signal')
+        fac.set_titles('{col_name}')
+
         return fac
 
 
