@@ -80,7 +80,7 @@ sns.despine()
 ##############################################################################
 # Plot simulated data
 # -------------------
-data.loc[1, 1].plot(c='k')
+data.plot(c='k')
 sns.despine()
 
 for onset in cue_onsets:
@@ -109,15 +109,15 @@ rf =nideconv.ResponseFitter(input_signal=data,
 
 # Get all the epochs corresponding to cue-onsets for subject 1,
 # run 1.
-cue_epochs = rf.get_epochs(onsets=onsets.loc[1, 1, 'cue'].onset, 
+cue_epochs = rf.get_epochs(onsets=onsets.loc['cue'].onset, 
                            interval=[0, 20])
 
 #############################################################################
 # Now we have a 4 x 21 DataFrame of epochs, that we can all plot 
 # in the same figure:
 print(cue_epochs)
-cue_epochs['area 1'].T.plot(c=palette[0], alpha=.5, ls='--', legend=False)
-cue_epochs['area 1'].mean().plot(c=palette[0], lw=2, alpha=1.0)
+cue_epochs.T.plot(c=palette[0], alpha=.5, ls='--', legend=False)
+cue_epochs.mean().plot(c=palette[0], lw=2, alpha=1.0)
 sns.despine()
 plt.xlabel('Time (s)')
 plt.title('Epoched average of cue-locked response')
@@ -125,10 +125,10 @@ plt.gcf().set_size_inches(8, 3)
 
 #############################################################################
 # We can do the same for the stimulus-locked responses:
-stim_epochs = rf.get_epochs(onsets=onsets.loc[1, 1, 'stim'].onset, 
+stim_epochs = rf.get_epochs(onsets=onsets.loc['stim'].onset, 
                            interval=[0, 20])
-stim_epochs['area 1'].T.plot(c=palette[1], alpha=.5, ls='--', legend=False)
-stim_epochs['area 1'].mean().plot(c=palette[1], lw=2, alpha=1.0)
+stim_epochs.T.plot(c=palette[1], alpha=.5, ls='--', legend=False)
+stim_epochs.mean().plot(c=palette[1], lw=2, alpha=1.0)
 sns.despine()
 plt.xlabel('Time (s)')
 plt.title('Epoched average of stimulus-locked response')
@@ -215,10 +215,10 @@ rf =nideconv.ResponseFitter(input_signal=data,
 # To which the events-of-interest can be added as follows:
 
 rf.add_event(event_name='cue', 
-             onsets=onsets.loc[1, 1, 'cue'].onset,
+             onsets=onsets.loc['cue'].onset,
              interval=[0,20])
 rf.add_event(event_name='stimulus', 
-             onsets=onsets.loc[1, 1, 'stim'].onset,
+             onsets=onsets.loc['stim'].onset,
              interval=[0,20])
 
 #############################################################################
