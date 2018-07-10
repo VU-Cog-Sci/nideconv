@@ -209,19 +209,29 @@ def simulate_fmri_experiment(conditions=None,
             signal = np.repeat(signal[:, np.newaxis], n_rois, 1)
             signal += np.random.randn(*signal.shape) * noise_level
             
-            columns = ['area %d' % i for i in range(1, n_rois + 1)]
+            if n_rois == 1:
+                columns = ['signal']
+            else:
+                columns = ['area %d' % i for i in range(1, n_rois + 1)]
+
             tmp = pd.DataFrame(signal,
                                columns=columns)
 
             tmp['t'] = frametimes
             tmp['subj_idx'], tmp['run'] = subj_idx, run
-            
-            
                 
             data.append(tmp)
 
     data = pd.concat(data).set_index(['subj_idx', 'run', 't'])
-    
     onsets = pd.concat(all_onsets).set_index(['subj_idx', 'run', 'trial_type'])
+    
+    if n_subjects == 1:
+        data.index = data.index.droplevel('subj_idx')
+        onsets.index = onsets.index.droplevel('subj_idx')
+
+    if n_runs == 1:
+        data.index = data.index.droplevel('run')
+        onsets.index = onsets.index.droplevel('run')
+
     
     return data, onsets, parameters
