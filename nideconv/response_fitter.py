@@ -360,7 +360,8 @@ class ResponseFitter(object):
             return self.input_signal
 
     def plot_model_fit(self,
-                       xlim=None):
+                       xlim=None,
+                       legend=True):
         
 
         n_rois = self.input_signal.shape[1]
@@ -382,12 +383,16 @@ class ResponseFitter(object):
                              col_wrap=col_wrap,
                              aspect=3)
 
-        fac.map(plt.plot, 'time', 'signal', color='k')
-        fac.map(plt.plot, 'time', 'prediction', color='r', lw=3)
+        fac.map(plt.plot, 'time', 'signal', color='k', label='signal')
+        fac.map(plt.plot, 'time', 'prediction', color='r', lw=3, label='prediction')
 
         if xlim is not None:
             for ax in fac.axes.ravel():
                 ax.set_xlim(*xlim)
+
+
+        if legend:
+            fac.add_legend()
 
         return fac
 
