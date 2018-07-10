@@ -341,10 +341,20 @@ class ResponseFitter(object):
         return epochs
 
 
-    def get_time_to_peak(self, oversample=None, cutoff=1.0, negative_peak=False):
+    def get_time_to_peak(self, 
+                         oversample=None, 
+                         cutoff=1.0, 
+                         negative_peak=False,
+                         include_prominence=False):
         
         if oversample is None:
             oversample = self.oversample_design_matrix
+
+        if include_prominence:
+            cols = ['time to peak', 'prominence']
+        else:
+            cols = ['time to peak']
+
 
         return self.get_timecourses(oversample=oversample)\
                    .groupby(['event type', 'covariate'], as_index=False)\
@@ -352,7 +362,7 @@ class ResponseFitter(object):
                           negative_peak=negative_peak,
                           cutoff=cutoff)\
                    .reset_index(level=[ -1], drop=True)\
-                   .pivot_table(columns='area', index='peak')[['time to peak', 'prominence']]
+                   .pivot_table(columns='area', index='peak')[cols]
                    
     
     def get_original_signal(self, melt=False):
