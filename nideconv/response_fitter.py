@@ -5,7 +5,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn import linear_model
 import scipy as sp
-from .plotting import plot_timecourses
+from .plotting import plot_timecourses, plot_design_matrix
 from nilearn import input_data, image
 from nilearn._utils import load_niimg
 from .utils import get_time_to_peak_from_timecourse
@@ -496,6 +496,11 @@ class ResponseFitter(object):
     def _check_fitted(self):
         assert hasattr(self, 'betas'), \
                         'no betas found, please run regression before rsq'
+
+    def plot_design_matrix(self, palette=None):
+
+        return plot_design_matrix(self.X, 
+                                  palette=palette)
 
 class ConcatenatedResponseFitter(ResponseFitter):
 
