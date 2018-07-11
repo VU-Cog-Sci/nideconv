@@ -1,6 +1,6 @@
 """
-What is Deconvolution?
-======================
+Deconvolution
+=============
 Neuroscientists (amongst others) are often interested in time series that are derived
 from neural activity, such as fMRI BOLD and pupil dilation. However, for some classes
 of data, neural activity gets temporally delayed and 
@@ -195,8 +195,9 @@ plt.title('Illustration of overlap problem')
 # :math:`t` add up linearly.
 # Assuming this linearity, the deconvolution boils down to solving a linear
 # sytem: every timepoint :math:`y_t` from signal :math:`Y` is a linear 
-# combination of the overlapping responses. These responses are modeled
-# by a set of basis functions in matrix :math:`X`.
+# combination of the overlapping responses, modeled by corresponding row
+# of matrix :math:`X`, :math:`X_{t,...}` (note that the design of matrix
+# :math:`X` is crucial here but more on that later...). 
 # We just need to find the 'weights' of the responses :math:`\beta`.:
 # 
 # .. math:: Y = X\beta
@@ -232,7 +233,7 @@ print(rf.X)
 
 #############################################################################
 # (Note the hierarchical columns (event type / covariate / regressor) 
-# on the regressors!)
+# on the regressors)
 
 #############################################################################
 # Now we can solve this linear system using ordinary least squares:
