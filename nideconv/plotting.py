@@ -79,7 +79,9 @@ def plot_timecourses(tc,
             fac.map(plt.axvline, x=0, c='k', ls='--')
 
         fac.fig.subplots_adjust(top=0.8)
-        fac.fig.suptitle(idx, fontsize=16)
+
+        if len(facs) > 1:
+            fac.fig.suptitle(idx, fontsize=16)
 
         if len(fac.col_names) == 1:
             fac.set_titles('')
