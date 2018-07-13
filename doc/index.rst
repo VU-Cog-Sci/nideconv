@@ -33,7 +33,7 @@ and the Spinoza Centre for Neuroimaging by Gilles de Hollander and Tomas Knapen.
    :maxdepth: 2
    :caption: Examples
 
-   auto_examples/index
+   auto_examples/extract_timeseries_fmriprep
 
 .. toctree::
    :maxdepth: 3
@@ -43,5 +43,6 @@ and the Spinoza Centre for Neuroimaging by Gilles de Hollander and Tomas Knapen.
    group_analysis/index
    nifti/index
    simulate/index
+   roi/get_fmriprep_timeseries
 
 
