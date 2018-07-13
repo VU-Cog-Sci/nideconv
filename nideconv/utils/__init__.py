@@ -6,4 +6,4 @@ from .tools import (get_proper_interval,
                     get_time_to_peak_from_timecourse)
 
 
-from .roi import _extract_timecourse_from_nii
+from .roi import extract_timecourse_from_nii
