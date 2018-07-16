@@ -12,7 +12,7 @@ class GroupResponseFitter(object):
 
     def __init__(self,
                  timeseries,
-                 behavior,
+                 onsets,
                  input_sample_rate,
                  oversample_design_matrix=20,
                  confounds=None,
@@ -23,17 +23,16 @@ class GroupResponseFitter(object):
         timeseries = pd.DataFrame(timeseries)
 
         self.timeseries = timeseries
-        self.onsets = behavior
+        self.onsets = onsets.copy()
         self.confounds = confounds
 
         self.concatenate_runs = concatenate_runs
 
         self.oversample_design_matrix = oversample_design_matrix
 
-
         self.index_columns = []
 
-        idx_fields = ['subj_idx', 'run']
+        idx_fields = ['subject', 'session', 'task', 'run']
 
         for field in idx_fields:
             if field in self.onsets.index.names:
@@ -42,15 +41,18 @@ class GroupResponseFitter(object):
             if field in self.timeseries.index.names:
                 self.timeseries.reset_index(field, inplace=True)
 
-        if 'trial_type' in self.onsets.index.names:
-            self.onsets.reset_index('trial_type', inplace=True)
+        if 'event' in self.onsets.index.names:
+            self.onsets.reset_index('event', inplace=True)
 
         for c in idx_fields:
             if c in self.timeseries.columns:
                 self.index_columns.append(c)
 
         if 'trial_type' not in self.onsets:
-            self.onsets['trial_type'] = 'intercept'
+            if 'condition' in self.onsets:
+                self.onsets['trial_type'] = self.onsets['condition']
+            else:
+                self.onsets['trial_type'] = 'intercept'
 
         self.timeseries['t'] = self.timeseries.groupby(self.index_columns).apply(_make_time_column, 
                                                                                  input_sample_rate)
@@ -86,10 +88,9 @@ class GroupResponseFitter(object):
 
     def add_event(self,
                  event=None,
-                 basis_set='fir', 
-
-                 interval=[0,10], 
-                 n_regressors=None, 
+                 basis_set='fir',
+                 interval=[0,10],
+                 n_regressors=None,
                  covariates=None,
                  add_intercept=True,
                  **kwargs):
@@ -146,7 +147,7 @@ class GroupResponseFitter(object):
 
         if concatenate_runs:
             self.concat_response_fitters = \
-                self.response_fitters.groupby('subj_idx') \
+                self.response_fitters.groupby('subject') \
                                      .apply(ConcatenatedResponseFitter)
 
             for concat_rf in self.concat_response_fitters:
@@ -189,7 +190,7 @@ class GroupResponseFitter(object):
                                     melt=False):
 
         tc = self.get_timecourses(oversample=oversample)
-        tc = tc.reset_index().groupby(['subj_idx', 'event type','covariate', 'time', ]).mean()
+        tc = tc.reset_index().groupby(['subject', 'event type','covariate', 'time', ]).mean()
 
         for c in self.index_columns:
             if c in tc.columns:
@@ -221,7 +222,7 @@ class GroupResponseFitter(object):
                 return t
 
             elif kind == 'z':
-                t_dist = sp.stats.t(len(self.timeseries.index.get_level_values('subj_idx')
+                t_dist = sp.stats.t(len(self.timeseries.index.get_level_values('subject')
                                                        .unique()))
                 norm_dist = sp.stats.norm()
 
