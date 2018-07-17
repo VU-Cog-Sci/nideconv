@@ -5,17 +5,18 @@ Extract ROI-timeseries from fmriprep data
 The first step in most deconvolution analyes is the extraction of the signal
 from different regions-of-interest.
 
-To do this, *nideconv* contains an easy-to-use module (*nideconv.utils.roi*) 
+To do this, *nideconv* contains an easy-to-use module (*nideconv.utils.roi*)
 that leverages the functionality of `nilearn <http://nilearn.github.io/>`_.
 It can extract a time series for every ROI in an atlas. Standard
 atlases included in nilearn can be found in the
 `nilearn manual <http://nilearn.github.io/modules/reference.html#module-nilearn.datasets>`_.
 
-Using `nilearn`, the module can also *temporally filter* the voxelwise
-signals as well as, clean them from any `confounds`.
+Using `nilearn`, the module can also temporally filter the voxelwise
+signals as well as, clean them from any confounds.
 
 This module is especially useful for preprocessed in the BIDS format,
-as with for example `fmriprep <http://fmriprep.readthedocs.io/en/latest/>`_.
+as for example the output of
+`fmriprep <http://fmriprep.readthedocs.io/en/latest/>`_.
 
 
 Extracting a time series from a single functional run
@@ -23,12 +24,12 @@ Extracting a time series from a single functional run
 Here we extract some signals from a single functional run 
 from a import *Stroop* dataset we got from a `open data repository
 <https://openneuro.org/datasets/ds000164/versions/00001>`_ on
-Openneuro.
+`Openneuro <https://openneuro.org/>`_.
 The data has been preprocessed using the 
 `fmriprep <http://fmriprep.readthedocs.io/en/latest/>`_ software.
 
  * The raw data was put into */data/openfmri/stroop/sourcedata*
- * and the data preprocessed with fmriprep in ****/data/openfmri/stroop/derivatives*
+ * and the data preprocessed with fmriprep in */data/openfmri/stroop/derivatives*
 """
 
 # Libraries
@@ -53,16 +54,22 @@ confounds = confounds[confounds_to_include]
 
 
 # Use the cortical Harvard-Oxford atlas
-atlas = datasets.fetch_atlas_harvard_oxford('cort-prob-2mm')
-plotting.plot_prob_atlas(atlas.maps)
+atlas_harvard_oxford = datasets.fetch_atlas_harvard_oxford('cort-prob-2mm')
+plotting.plot_prob_atlas(atlas_harvard_oxford.maps)
 
-ts = roi.extract_timecourse_from_nii(atlas,
+##############################################################################
+# .. image:: ../_static/harvard_oxford.png
+
+ts = roi.extract_timecourse_from_nii(atlas_harvard_oxford,
                                      func,
                                      confounds=confounds.values, 
                                      t_r=1.5,
                                      high_pass=1./128,
                                      )
 
+##############################################################################
+# Now we have a dataframe with a time series for every roi in 
+# `atlas_harvard_oxford`
 print(ts.head())
 
 ##############################################################################
@@ -99,10 +106,16 @@ ts.to_pickle('/data/openfmri/stroop_task/derivatives/timeseries/sub-001_task-str
 from nideconv.utils import roi
 from nilearn import datasets
 
-atlas = datasets.fetch_atlas_pauli_2017()
+# Here we use a subcortical atlas
+atlas_pauli = datasets.fetch_atlas_pauli_2017()
+plotting.plot_prob_atlas(atlas_pauli)
+
+##############################################################################
+# .. image:: ../_static/pauli.png
+
 ts = roi.get_fmriprep_timeseries(fmriprep_folder='/data/openfmri/stroop_task/derivatives/fmriprep/',
                                  sourcedata_folder='/data/openfmri/stroop_task/sourcedata/',
-                                 atlas=atlas)
+                                 atlas=atlas_pauli)
 
 ##############################################################################
 # .. rst-class:: sphx-glr-script-out
@@ -140,7 +153,8 @@ ts = roi.get_fmriprep_timeseries(fmriprep_folder='/data/openfmri/stroop_task/der
 
 ##############################################################################
 # We now have a very large dataframe containing time series for every subject
-# and run and for every ROI.
+# and run and for every ROI. The data are indexed with subject and, if applicable
+# session, task, and run.
 print(ts)
 ##############################################################################
 # .. rst-class:: sphx-glr-script-out
@@ -218,3 +232,15 @@ print(ts)
 # Now we can save these time series for later use.
 #
 ts.to_pickle('/data/openfmri/stroop/derivatives/timeseries/pauli_2017.pkl')
+
+
+##############################################################################
+# Harvard-Oxford atlas
+# --------------------
+# For later use, we also extract data using the Harvard-Oxford cortical atlas
+atlas_harvard_oxford = datasets.fetch_atlas_harvard_oxford('cort-prob-2mm')
+ts = roi.get_fmriprep_timeseries(fmriprep_folder='/data/openfmri/stroop_task/derivatives/fmriprep/',
+                                 sourcedata_folder='/data/openfmri/stroop_task/sourcedata/',
+                                 atlas=atlas_harvard_oxford)
+
+ts.to_pickle('/data/openfmri/stroop/derivatives/timeseries/harvard_oxford_2017.pkl')
