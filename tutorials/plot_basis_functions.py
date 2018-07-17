@@ -15,13 +15,6 @@ import seaborn as sns
 sns.set_style('white')
 sns.set_context('notebook')
 
-##############################################################################
-#
-plt.figure(figsize=(6,3))
-t = np.linspace(0, 20)
-plt.plot(t, double_gamma_with_d(t))
-plt.title('Canonical HRF')
-sns.despine()
 
 
 ##############################################################################
@@ -30,7 +23,16 @@ sns.despine()
 # Another important assumption pertains to what we believe the response we are 
 # interested in looks like. In the most extreme case, we for example assume that a
 # task-related BOLD fMRI response exactly follows the canonical HRF.
+
+##############################################################################
 #
+plt.figure(figsize=(6,3))
+t = np.linspace(0, 20)
+plt.plot(t, double_gamma_with_d(t))
+plt.title('Canonical HRF')
+sns.despine()
+
+##############################################################################
 # Let’s simulate some data with very little noise and the standard HRF, 
 # fit a model, and see how well our model fits the data 
 
