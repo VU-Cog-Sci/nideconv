@@ -40,7 +40,7 @@ def plot_timecourses(tc,
 
         fac.map_dataframe(sns.tsplot,
                           time='time',
-                          unit='subj_idx',
+                          unit='subject',
                           condition=hue,
                           value='value',
                           color=sns.color_palette(),

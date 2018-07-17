@@ -266,7 +266,7 @@ class ResponseFitter(object):
 
         tc = self.get_timecourses(melt=True,
                                   oversample=oversample)
-        tc['subj_idx'] = 'dummy'
+        tc['subject'] = 'dummy'
 
         return plot_timecourses(tc, *args, **kwargs)
         
@@ -451,7 +451,7 @@ class ConcatenatedResponseFitter(ResponseFitter):
 
         tc = self.get_timecourses(melt=True,
                                   oversample=oversample)
-        tc['subj_idx'] = 'dummy'
+        tc['subject'] = 'dummy'
 
         plot_timecourses(tc, *args, **kwargs)
 
