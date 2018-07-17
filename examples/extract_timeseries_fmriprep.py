@@ -1,7 +1,7 @@
 
 """
-Extract ROI-timeseries from fmriprep data
-=========================================
+Extract timeseries from ROIs using fmriprep data
+================================================
 The first step in most deconvolution analyes is the extraction of the signal
 from different regions-of-interest.
 
