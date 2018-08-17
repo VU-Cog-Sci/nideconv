@@ -46,17 +46,17 @@ def simulate_fmri_experiment(conditions=None,
     all_onsets = []
     
     parameters = []
-    for subj_idx in np.arange(1, n_subjects+1):    
+    for subject in np.arange(1, n_subjects+1):    
         
         for i, condition in conditions.iterrows():
             amplitude = sp.stats.norm(loc=condition['mu_group'], scale=condition['std_group']).rvs()
-            parameters.append({'subj_idx':subj_idx,
+            parameters.append({'subject':subject,
                                'trial_type':condition.name,
                                'amplitude':amplitude})    
             
-    parameters = pd.DataFrame(parameters).set_index(['subj_idx', 'trial_type'])
+    parameters = pd.DataFrame(parameters).set_index(['subject', 'trial_type'])
     
-    for subj_idx in np.arange(1, n_subjects+1):    
+    for subject in np.arange(1, n_subjects+1):    
         
         for run in range(1, n_runs+1):
             
@@ -77,11 +77,11 @@ def simulate_fmri_experiment(conditions=None,
                                               n_trials,
                                               replace=False)
 
-                signals[i, (onsets / TR).astype(int)] = parameters.loc[subj_idx, condition.name]
+                signals[i, (onsets / TR).astype(int)] = parameters.loc[subject, condition.name]
                 
                 
                 all_onsets.append(pd.DataFrame({'onset':onsets}))
-                all_onsets[-1]['subj_idx'] = subj_idx
+                all_onsets[-1]['subject'] = subject
                 all_onsets[-1]['run'] = run
                 all_onsets[-1]['trial_type'] = condition.name
                 
@@ -100,16 +100,16 @@ def simulate_fmri_experiment(conditions=None,
                                columns=columns)
 
             tmp['t'] = frametimes
-            tmp['subj_idx'], tmp['run'] = subj_idx, run
+            tmp['subject'], tmp['run'] = subject, run
                 
             data.append(tmp)
             
-    data = pd.concat(data).set_index(['subj_idx', 'run', 't'])
-    onsets = pd.concat(all_onsets).set_index(['subj_idx', 'run', 'trial_type'])
+    data = pd.concat(data).set_index(['subject', 'run', 't'])
+    onsets = pd.concat(all_onsets).set_index(['subject', 'run', 'trial_type'])
     
     if n_subjects == 1:
-        data.index = data.index.droplevel('subj_idx')
-        onsets.index = onsets.index.droplevel('subj_idx')
+        data.index = data.index.droplevel('subject')
+        onsets.index = onsets.index.droplevel('subject')
 
     if n_runs == 1:
         data.index = data.index.droplevel('run')
