@@ -140,7 +140,12 @@ class GroupResponseFitter(object):
                                                        covariates=covariate_matrix)
 
 
-    def fit(self, concatenate_runs=None):
+    def fit(self,
+            concatenate_runs=None,
+            type='ols',
+            cv=20,
+            alphas=None,
+            store_residuals=False):
 
         if concatenate_runs is None:
             concatenate_runs = self.concatenate_runs
@@ -151,10 +156,16 @@ class GroupResponseFitter(object):
                                      .apply(ConcatenatedResponseFitter)
 
             for concat_rf in self.concat_response_fitters:
-                concat_rf.regress()
+                concat_rf.regress(type,
+                                  cv,
+                                  alphas,
+                                  store_residuals)
         else:
             for rf in self.response_fitters:
-                rf.regress()
+                rf.regress(type,
+                           cv,
+                           alphas,
+                           store_residuals)
 
     def get_timecourses(self, oversample=None,
                         concatenate_runs=None):
