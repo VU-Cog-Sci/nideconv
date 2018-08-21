@@ -192,6 +192,9 @@ class ResponseFitter(object):
 
         if store_residuals:
             self._residuals = self.input_signal - self.rcv.predict(self.X)
+            self.ssquares = np.sum(self._residuals**2)
+        else:
+            self.ssquares = np.sum((self.input_signal - self.rcv.predict(self.X))**2)
 
         self._send_betas_to_regressors()
 
@@ -285,12 +288,12 @@ class ResponseFitter(object):
         assert hasattr(self, 'betas'), \
                         'no betas found, please run regression before rsq'
 
-        return 1 - ((self.get_residuals()**2).sum() / (self.input_signal**2).sum())
+        return 1 - (self.ssquares / ((self.input_signal - self.input_signal.mean())**2).sum())
 
 
     def get_residuals(self):
         if not hasattr(self, '_residuals'):
-            return self.input_signal - self.predict_from_design_matrix()
+            return self.input_signal - self.predict_from_design_matrix().values
         else:
             return self._residuals
 
