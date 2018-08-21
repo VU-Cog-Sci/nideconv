@@ -274,9 +274,8 @@ class Event(Regressor):
             covariate = self.covariates[covariate]
 
         for e,d,c in zip(self.onset_times, durations, covariate):
-            et = int((e + self.interval[0]) * self.sample_rate * oversample) 
-            # round is necessary, int(0,999999) is 0!
-            dt =  int(round(d * self.sample_rate * oversample))             
+            et = int((e + self.interval[0]) * self.sample_rate * oversample)
+            dt =  np.max((d * self.sample_rate * oversample, 1), 0).astype(int)
             event_timepoints[et:et+dt] = c
 
         return event_timepoints
