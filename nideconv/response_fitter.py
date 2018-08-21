@@ -80,7 +80,11 @@ class ResponseFitter(object):
         self._add_regressor(confound)
 
 
-    def _add_regressor(self, regressor, oversample=1):
+    def _add_regressor(self, regressor, oversample=None):
+
+        if oversample is None:
+            oversample = self.oversample_design_matrix
+
         regressor.create_design_matrix(oversample=oversample)
 
         if self.X.shape[1] == 0:
