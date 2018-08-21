@@ -152,6 +152,10 @@ class ResponseFitter(object):
                                 np.linalg.lstsq(self.X, self.input_signal, rcond=-1)
             self._send_betas_to_regressors()
 
+            if self.rank < self.X.shape[1]:
+                raise Exception('Design matrix is singular. Consider using less '
+                                'regressors, basis functions, or try ridge regression.')
+
             prediction = self.X.dot(self.betas)
 
             if store_residuals:
