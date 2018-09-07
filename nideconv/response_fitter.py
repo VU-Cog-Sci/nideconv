@@ -1,21 +1,26 @@
 from .regressors import Event, Confound, Intercept
 import numpy as np
 import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
 from sklearn import linear_model
 import scipy as sp
 from .plotting import plot_timecourses
+from nilearn import input_data, image
+from nilearn._utils import load_niimg
+from .utils import get_time_to_peak_from_timecourse
 
-class ResponseFytter(object):
-    """ResponseFytter takes an input signal and performs deconvolution on it. 
+class ResponseFitter(object):
+    """ResponseFitter takes an input signal and performs deconvolution on it. 
     To do this, it requires event times, and possible covariates.
-    ResponseFytter can, for each event_type, use different basis function sets,
+    ResponseFitter can, for each event type, use different basis function sets,
     see Event."""
     def __init__(self,
                  input_signal,
                  sample_rate,
                  oversample_design_matrix=20,
                  add_intercept=True, **kwargs):
-        """ Initialize a ResponseFytter object.
+        """ Initialize a ResponseFitter object.
 
         Parameters
         ----------
@@ -28,9 +33,9 @@ class ResponseFytter(object):
             frequency in Hz at which input data are sampled
 
         **kwargs : dict
-            keyward arguments to be internalized by the ResponseFytter object
+            keyward arguments to be internalized by the ResponseFitter object
         """        
-        super(ResponseFytter, self).__init__()
+        super(ResponseFitter, self).__init__()
         self.__dict__.update(kwargs)
 
         self.sample_rate = sample_rate
@@ -61,8 +66,7 @@ class ResponseFytter(object):
         self._add_regressor(intercept)
 
     def add_confounds(self, name, confound):
-        """ 
-        Add a timeseries or set of timeseries to the general
+        """Add a timeseries or set of timeseries to the general
         design matrix as a confound
 
         Parameters
@@ -76,7 +80,11 @@ class ResponseFytter(object):
         self._add_regressor(confound)
 
 
-    def _add_regressor(self, regressor, oversample=1):
+    def _add_regressor(self, regressor, oversample=None):
+
+        if oversample is None:
+            oversample = self.oversample_design_matrix
+
         regressor.create_design_matrix(oversample=oversample)
 
         if self.X.shape[1] == 0:
@@ -130,11 +138,11 @@ class ResponseFytter(object):
 
 
     def regress(self, type='ols', cv=20, alphas=None, store_residuals=False):
-        """
-        regress a created design matrix on the input_data, creating internal
-        variables betas, residuals, rank and s. 
+        """Regress a created design matrix on the input_data.
+        
+        Creates internal variables betas, residuals, rank and s. 
         The beta values are then injected into the event_type objects the
-        response_fitter contains. 
+        ResponseFitter contains. 
 
         Parameters
         ----------
@@ -145,11 +153,17 @@ class ResponseFytter(object):
         """
         if type == 'ols':
             self.betas, self.ssquares, self.rank, self.s = \
-                                np.linalg.lstsq(self.X, self.input_signal, rcond=None)
+                                np.linalg.lstsq(self.X, self.input_signal, rcond=-1)
             self._send_betas_to_regressors()
 
+            if self.rank < self.X.shape[1]:
+                raise Exception('Design matrix is singular. Consider using less '
+                                'regressors, basis functions, or try ridge regression.')
+
+            prediction = self.X.dot(self.betas)
+
             if store_residuals:
-                self.residuals = self.input_signal - self.predict_from_design_matrix()
+                self._residuals = self.input_signal - prediction
 
         elif type == 'ridge':   # betas and residuals are internalized by ridge_regress
             if self.input_signal.shape[1] > 1:
@@ -181,7 +195,10 @@ class ResponseFytter(object):
         self.betas = self.rcv.coef_.T
 
         if store_residuals:
-            self.residuals = self.input_signal - self.rcv.predict(self.X)
+            self._residuals = self.input_signal - self.rcv.predict(self.X)
+            self.ssquares = np.sum(self._residuals**2)
+        else:
+            self.ssquares = np.sum((self.input_signal - self.rcv.predict(self.X))**2)
 
         self._send_betas_to_regressors()
 
@@ -193,7 +210,9 @@ class ResponseFytter(object):
         for key in self.events:
             self.events[key].betas = self.betas.loc[[key]]
 
-    def predict_from_design_matrix(self, X=None):
+    def predict_from_design_matrix(self, 
+                                   X=None, 
+                                   melt=False):
         """
         predict a signal given a design matrix. Requires regression to have
         been run.
@@ -215,6 +234,14 @@ class ResponseFytter(object):
 
 
         prediction = self.X.dot(self.betas)
+        if melt:
+            prediction = prediction.reset_index()\
+                                   .melt(var_name='roi',
+                                         value_name='prediction',
+                                         id_vars='time')
+
+        else:
+            prediction.columns = ['prediction for %s' % c for c in prediction.columns]
 
         return prediction
 
@@ -243,16 +270,18 @@ class ResponseFytter(object):
 
     def plot_timecourses(self,
                          oversample=None,
+                         legend=True,
                          *args,
                          **kwargs):
 
         tc = self.get_timecourses(melt=True,
                                   oversample=oversample)
-        tc['subj_idx'] = 'dummy'
+        tc['subject'] = 'dummy'
 
-        plot_timecourses(tc, *args, **kwargs)
+        return plot_timecourses(tc, *args, **kwargs)
+        
 
-    def rsq(self):
+    def get_rsq(self):
         """
         calculate the rsq of a given fit. 
         calls predict_from_design_matrix to predict the signal that has been fit
@@ -262,22 +291,22 @@ class ResponseFytter(object):
         assert hasattr(self, 'betas'), \
                         'no betas found, please run regression before rsq'
 
-        # rsq only counts where we actually try to explain data
-        predicted_signal = self.predict_from_design_matrix().values
+        return 1 - (self.ssquares / ((self.input_signal - self.input_signal.mean())**2).sum())
 
 
-        rsq = 1.0 - np.sum((np.atleast_2d(predicted_signal).T - self.input_signal)**2, axis = 0) / \
-                        np.sum(self.input_signal.squeeze()**2, axis = 0)
-        return np.squeeze(rsq)
+    def get_residuals(self):
+        if not hasattr(self, '_residuals'):
+            return self.input_signal - self.predict_from_design_matrix().values
+        else:
+            return self._residuals
 
-    #def get_timecourses
 
     def get_epochs(self, onsets, interval, remove_incomplete_epochs=True):
         """ 
         Return a matrix corresponding to specific onsets, within a given
         interval. Matrix size is (n_onsets, n_timepoints_within_interval).
 
-        Note that any events that are in the ResponseFytter-object will
+        Note that any events that are in the ResponseFitter-object will
         be regressed out before calculating the epochs.
         """
         
@@ -285,8 +314,8 @@ class ResponseFytter(object):
         if self.X.shape[1] == 0:
             signal = self.input_signal
         else:
-            self.regress()
-            signal = self.residuals
+            self.regress(store_residuals=True)
+            signal = self._residuals
             
             
         onsets = np.array(onsets)
@@ -302,10 +331,20 @@ class ResponseFytter(object):
         indices[indices >= signal.shape[0]] = -1
 
         # Make dummy element to fill epochs with nans if they fall out of the timeseries
-        signal = pd.concat((signal, pd.DataFrame([np.nan], index=[np.nan])))
+        signal = pd.concat((signal, pd.DataFrame(np.zeros((1, signal.shape[1])) * np.nan,
+                                                 columns=signal.columns,
+                                                 index=[np.nan])), 
+                           0)
 
         # Calculate epochs
-        epochs =  pd.DataFrame(signal.values.ravel()[indices], columns=np.linspace(interval[0], interval[1], interval_n_samples))
+        epochs = signal.values[indices].swapaxes(-1, -2)
+        epochs = epochs.reshape((epochs.shape[0], np.prod(epochs.shape[1:])))
+        columns = pd.MultiIndex.from_product([signal.columns,
+                                             np.linspace(interval[0], interval[1], interval_n_samples)],
+                                            names=['roi', 'time'])
+        epochs = pd.DataFrame(epochs,
+                              columns=columns,
+                             index=pd.Index(onsets, name='onset'))
         
         # Get rid of incomplete epochs:
         if remove_incomplete_epochs:
@@ -313,3 +352,135 @@ class ResponseFytter(object):
         return epochs
 
 
+    def get_time_to_peak(self, 
+                         oversample=None, 
+                         cutoff=1.0, 
+                         negative_peak=False,
+                         include_prominence=False):
+        
+        if oversample is None:
+            oversample = self.oversample_design_matrix
+
+        if include_prominence:
+            cols = ['time to peak', 'prominence']
+        else:
+            cols = ['time to peak']
+
+
+        return self.get_timecourses(oversample=oversample)\
+                   .groupby(['event type', 'covariate'], as_index=False)\
+                   .apply(get_time_to_peak_from_timecourse, 
+                          negative_peak=negative_peak,
+                          cutoff=cutoff)\
+                   .reset_index(level=[ -1], drop=True)\
+                   .pivot_table(columns='area', index='peak')[cols]
+                   
+    
+    def get_original_signal(self, melt=False):
+        if melt:
+            return self.input_signal.reset_index()\
+                                    .melt(var_name='roi',
+                                          value_name='signal',
+                                          id_vars='time')
+        else:
+            return self.input_signal
+
+    def plot_model_fit(self,
+                       xlim=None,
+                       legend=True):
+        
+
+        n_rois = self.input_signal.shape[1]
+        if n_rois > 24:
+            raise Exception('Are you sure you want to plot {} areas?!'.format(n_rois))
+
+        signal = self.get_original_signal(melt=True)
+        prediction = self.predict_from_design_matrix(melt=True)
+
+        data = signal.merge(prediction)
+        
+        if n_rois < 4:
+            col_wrap = n_rois
+        else:
+            col_wrap = 4
+       
+        fac  = sns.FacetGrid(data, 
+                             col='roi',
+                             col_wrap=col_wrap,
+                             aspect=3)
+
+        fac.map(plt.plot, 'time', 'signal', color='k', label='signal')
+        fac.map(plt.plot, 'time', 'prediction', color='r', lw=3, label='prediction')
+
+        if xlim is not None:
+            for ax in fac.axes.ravel():
+                ax.set_xlim(*xlim)
+
+
+        if legend:
+            fac.add_legend()
+
+        fac.set_ylabels('signal')
+        fac.set_titles('{col_name}')
+
+        return fac
+
+
+class ConcatenatedResponseFitter(ResponseFitter):
+
+
+    def __init__(self, response_fitters):
+
+        self.response_fitters = response_fitters
+
+        self.X = pd.concat([rf.X for rf in self.response_fitters]).fillna(0)
+
+        for attr in ['sample_rate', 'oversample_design_matrix']:
+            check_properties_response_fitters(self.response_fitters, attr)
+            setattr(self, attr, getattr(self.response_fitters[0], attr))
+
+
+        self.input_signal = pd.concat([rf.input_signal for rf in self.response_fitters])
+
+        self.events =  {}
+        for rf in self.response_fitters:
+            self.events.update(rf.events)
+
+
+    def add_intercept(self, *args, **kwargs):
+        raise Exception('ConcatenatedResponseFitter does not allow for adding'\
+                         'intercepts anymore. Do this in the original response '\
+                         'fitters that get concatenated')
+
+
+    def add_confounds(self, *args, **kwargs):
+        raise Exception('ConcatenatedResponseFitter does not allow for adding '\
+                         'confounds. Do this in the original response '\
+                         'fytters that get concatenated')
+
+
+    def add_event(self, *args, **kwargs):
+        raise Exception('ConcatenatedResponseFitter does not allow for adding'\
+                         'events.')
+
+
+    def plot_timecourses(self,
+                         oversample=None,
+                         *args,
+                         **kwargs):
+
+        tc = self.get_timecourses(melt=True,
+                                  oversample=oversample)
+        tc['subject'] = 'dummy'
+
+        plot_timecourses(tc, *args, **kwargs)
+
+
+    def get_epochs(self, onsets, interval, remove_incomplete_epochs=True):
+        raise NotImplementedError()
+
+def check_properties_response_fitters(response_fitters, attribute):
+
+    attribute_values = [getattr(rf, attribute) for rf in response_fitters]
+
+    assert(all([v == attribute_values[0] for v in attribute_values])), "%s not equal across response fitters!" % attribute

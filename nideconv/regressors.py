@@ -10,7 +10,10 @@ import scipy as sp
 from scipy import signal
 import pandas as pd
 import warnings
-from .utils import get_proper_interval, double_gamma_with_d
+from .utils import (get_proper_interval,
+                    double_gamma_with_d,
+                    get_time_to_peak_from_timecourse,
+                    double_gamma_with_d_time_derivative)
 
 def _create_fir_basis(interval, sample_rate, n_regressors, oversample=1):
     """"""
@@ -36,6 +39,15 @@ def _create_canonical_hrf_basis(interval, sample_rate, n_regressors, oversample=
     
     return double_gamma_with_d(timepoints)[:, np.newaxis]
 
+def _create_canonical_hrf_with_time_derivative_basis(interval, sample_rate, n_regressors, oversample=1):
+    timepoints = np.arange(interval[0], 
+                           interval[1] + (1./sample_rate/oversample), 
+                           1./sample_rate / oversample) 
+    
+    hrf = double_gamma_with_d(timepoints)
+    dt_hrf = double_gamma_with_d_time_derivative(timepoints)
+
+    return np.array([hrf, dt_hrf]).T
 
 def _create_fourier_basis(interval, sample_rate, n_regressors, oversample=1):
     """"""
@@ -60,11 +72,8 @@ def _create_fourier_basis(interval, sample_rate, n_regressors, oversample=1):
 
 def _create_legendre_basis(interval, sample_rate, n_regressors, oversample=1):
     """"""
-    timepoints = np.arange(interval[0],
-                           interval[1] + (1./sample_rate/oversample),
-                           1./sample_rate / oversample)    
 
-    x = np.linspace(-1, 1, len(timepoints) * oversample, endpoint=True)
+    x = np.linspace(-1, 1, int(np.diff(interval)) * oversample + 1, endpoint=True)
     L_legendre = np.polynomial.legendre.legval(x=x, c=np.eye(n_regressors)).T
 
     return L_legendre
@@ -192,13 +201,10 @@ class Event(Regressor):
 
         if type(self.basis_set) is not str:
             self.n_regressors = self.basis_set.shape[1]
-
             self.basis_set = pd.DataFrame(self.basis_set,
                                           index=np.linspace(*self.interval,
-                                                            len(self.basis_set),
-                                                            endpoint=True,
-                                                            )
-                                          )
+                                                            num=len(self.basis_set),
+                                                            endpoint=True))
 
         else:
             if self.basis_set == 'fir':
@@ -222,8 +228,13 @@ class Event(Regressor):
 
                 self.n_regressors = 1
 
+            elif self.basis_set == 'canonical_hrf_with_time_derivative':
+                if (self.n_regressors is not None) and (self.n_regressors != 2):
+                    warnings.warn('With the canonical HRF with time derivative as a basis set,'
+                                   'you can have only TWO '
+                                  'regressors per covariate!')
 
-
+                self.n_regressors = 2
 
     def event_timecourse(self, 
                          covariate=None,
@@ -259,9 +270,8 @@ class Event(Regressor):
             covariate = self.covariates[covariate]
 
         for e,d,c in zip(self.onset_times, durations, covariate):
-            et = int((e + self.interval[0]) * self.sample_rate * oversample) 
-            # round is necessary, int(0,999999) is 0!
-            dt =  int(round(d * self.sample_rate * oversample))             
+            et = int((e + self.interval[0]) * self.sample_rate * oversample)
+            dt =  np.max((d * self.sample_rate * oversample, 1), 0).astype(int)
             event_timepoints[et:et+dt] = c
 
         return event_timepoints
@@ -278,8 +288,6 @@ class Event(Regressor):
                            self.n_regressors * self.covariates.shape[1]))
 
         L = self.get_basis_function(oversample)
-
-        effective_sample_rate = self.sample_rate * oversample
 
         columns = pd.MultiIndex.from_product(([self.name], self.covariates.columns, L.columns),
                                              names=['event_type', 'covariate', 'regressor'])
@@ -320,8 +328,6 @@ class Event(Regressor):
 
     def get_basis_function(self, oversample=1):
 
-        n_timepoints = (self.interval[1] - self.interval[0]) / self.sample_duration
-
         timepoints = np.arange(self.interval[0], 
                                self.interval[1] + (1./self.sample_rate/oversample), 
                                1./self.sample_rate / oversample) 
@@ -349,6 +355,14 @@ class Event(Regressor):
                                                 1,
                                                 oversample)
                 regressor_labels = ['canonical_hrf']
+
+            elif self.basis_set == 'canonical_hrf_with_time_derivative':
+                L = _create_canonical_hrf_with_time_derivative_basis(self.interval,
+                                                self.sample_rate,
+                                                2,
+                                                oversample)
+                regressor_labels = ['canonical_hrf', 'canonical_hrf_time_derivative']
+
         else:
             regressor_labels = ['custom_basis_function_%d' % i for i in range(1, self.n_regressors+1)]        
             L = np.zeros((self.basis_set.shape[0] * oversample, self.n_regressors))
@@ -369,6 +383,17 @@ class Event(Regressor):
         self.X = pd.DataFrame(X_,
                               columns=self.X.columns,
                               index=self.fitter.input_signal.index)
+
+
+    def get_time_to_peak(self, oversample=20, cutoff=1.0, negative_peak=False):
+        return self.get_timecourses(oversample=oversample)\
+                   .groupby(['event type', 'covariate'], as_index=False)\
+                   .apply(get_time_to_peak_from_timecourse, 
+                          negative_peak=negative_peak,
+                          cutoff=cutoff)\
+                   .reset_index(level=[ -1], drop=True)\
+                   .pivot(columns='area', index='peak')
+                   
 
 
 def _dotproduct_timecourse(d, L):
