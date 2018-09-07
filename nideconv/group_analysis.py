@@ -20,10 +20,10 @@ class GroupResponseFitter(object):
                  *args,
                  **kwargs):
 
-        timeseries = pd.DataFrame(timeseries)
+        timeseries = pd.DataFrame(timeseries.copy())
 
         self.timeseries = timeseries
-        self.onsets = onsets.copy()
+        self.onsets = onsets.copy().reset_index()
         self.confounds = confounds
 
         self.concatenate_runs = concatenate_runs
@@ -107,13 +107,14 @@ class GroupResponseFitter(object):
 
         for i, (col, ts) in self._groupby_ts_runs():
             for e in event:
+
+                if type(col) is not tuple:
+                    col = (col,)
                 
                 if col + (e,) not in self.onsets.index:
                     warnings.warn('Event %s is not available for run %s. Event is ignored for this '
                                   'run' % (e, col))
                 else:
-                    if type(col) is not tuple:
-                        col = (col,)
 
                     if covariates is None:
                         covariate_matrix = None
