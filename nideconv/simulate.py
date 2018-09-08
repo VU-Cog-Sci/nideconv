@@ -55,6 +55,9 @@ def simulate_fmri_experiment(conditions=None,
                                'amplitude':amplitude})    
             
     parameters = pd.DataFrame(parameters).set_index(['subject', 'trial_type'])
+
+    if type(n_trials) is int:
+        n_trials = [n_trials] * len(conditions)
     
     for subject in np.arange(1, n_subjects+1):    
         
@@ -68,13 +71,13 @@ def simulate_fmri_experiment(conditions=None,
                 else:
                     onsets = np.ones(0)
 
-                    while len(onsets) < n_trials:
-                        isis = np.random.gamma(run_duration / n_trials, 1, size=n_trials * 10)
+                    while len(onsets) < n_trials[i]:
+                        isis = np.random.gamma(run_duration / n_trials[i], 1, size=n_trials[i] * 10)
                         onsets = np.cumsum(isis)
                         onsets = onsets[onsets < run_duration]
 
                     onsets = np.random.choice(onsets, 
-                                              n_trials,
+                                              n_trials[i],
                                               replace=False)
 
                 signals[i, (onsets / TR).astype(int)] = parameters.loc[subject, condition.name]
