@@ -128,7 +128,7 @@ class Event(Regressor):
                 basis_set='fir', 
                 interval=[0,10], 
                 n_regressors=None, 
-                onset_times=None, 
+                onsets=None, 
                 durations=None, 
                 covariates=None):
         """ Initialize a ResponseFitter object.
@@ -154,18 +154,18 @@ class Event(Regressor):
             either in terms of added, higher, frequencies (fourier) or 
             higher polynomial order (legendre)
 
-        onset_times : np.array (1D)
+        onsets : np.array (1D)
             onset times, in seconds, of all the events to estimate the response
             to
 
         durations : np.array (1D), optional
-            durations of each of the events in onset_times. 
+            durations of each of the events in onsets. 
 
         covariates : dict, optional
-            dictionary of covariates for each of the events in onset_times. 
+            dictionary of covariates for each of the events in onsets. 
             that is, the keys are the names of the covariates, the values
-            are 1D numpy arrays of length identical to onset_times; these
-            are the covariate values of each of the events in onset_times. 
+            are 1D numpy arrays of length identical to onsets; these
+            are the covariate values of each of the events in onsets. 
 
         """        
         super(Event, self).__init__(name, fitter)
@@ -173,7 +173,7 @@ class Event(Regressor):
         self.basis_set = basis_set
         self.interval = interval
         self.n_regressors = n_regressors
-        self.onset_times = onset_times
+        self.onsets = onsets
         self.durations = durations
 
         self.interval_duration = self.interval[1] - self.interval[0]
@@ -195,7 +195,7 @@ class Event(Regressor):
 
 
         if covariates is None:
-            self.covariates = pd.DataFrame({'intercept': np.ones(self.onset_times.shape[0])})
+            self.covariates = pd.DataFrame({'intercept': np.ones(self.onsets.shape[0])})
         else:
             self.covariates = pd.DataFrame(covariates)
 
@@ -259,7 +259,7 @@ class Event(Regressor):
         """
 
         if self.durations is None:
-            durations = np.ones_like(self.onset_times) * self.sample_duration / oversample
+            durations = np.ones_like(self.onsets) * self.sample_duration / oversample
         else:
             durations = self.durations
         event_timepoints = np.zeros(self.fitter.input_signal.shape[0] * oversample)
@@ -269,7 +269,7 @@ class Event(Regressor):
         else:
             covariate = self.covariates[covariate]
 
-        for e,d,c in zip(self.onset_times, durations, covariate):
+        for e,d,c in zip(self.onsets, durations, covariate):
             et = int((e + self.interval[0]) * self.sample_rate * oversample)
             dt =  np.max((d * self.sample_rate * oversample, 1), 0).astype(int)
             event_timepoints[et:et+dt] = c

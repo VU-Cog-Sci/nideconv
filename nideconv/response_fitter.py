@@ -5,7 +5,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn import linear_model
 import scipy as sp
-from .plotting import plot_timecourses
+from .plotting import plot_timecourses, plot_design_matrix
 from nilearn import input_data, image
 from nilearn._utils import load_niimg
 from .utils import get_time_to_peak_from_timecourse
@@ -95,7 +95,7 @@ class ResponseFitter(object):
 
     def add_event(self,
                   event_name,
-                  onset_times=None, 
+                  onsets=None, 
                   basis_set='fir', 
                   interval=[0,10], 
                   n_regressors=None, 
@@ -122,7 +122,7 @@ class ResponseFitter(object):
         assert event_name not in self.X.columns.get_level_values(0), "The event_name %s is already in use" % event_name
 
         ev = Event(name=event_name, 
-                   onset_times=onset_times,
+                   onsets=onsets,
                    basis_set=basis_set,
                    interval=interval,
                    n_regressors=n_regressors,
@@ -137,7 +137,7 @@ class ResponseFitter(object):
 
 
 
-    def regress(self, type='ols', cv=20, alphas=None, store_residuals=False):
+    def fit(self, type='ols', cv=20, alphas=None, store_residuals=False):
         """Regress a created design matrix on the input_data.
         
         Creates internal variables betas, residuals, rank and s. 
@@ -278,7 +278,10 @@ class ResponseFitter(object):
                                   oversample=oversample)
         tc['subject'] = 'dummy'
 
-        return plot_timecourses(tc, *args, **kwargs)
+        return plot_timecourses(tc, 
+                                legend=legend,
+                                *args, 
+                                **kwargs)
         
 
     def get_rsq(self):
@@ -314,7 +317,7 @@ class ResponseFitter(object):
         if self.X.shape[1] == 0:
             signal = self.input_signal
         else:
-            self.regress(store_residuals=True)
+            self.fit(store_residuals=True)
             signal = self._residuals
             
             
@@ -425,6 +428,10 @@ class ResponseFitter(object):
 
         return fac
 
+    def plot_design_matrix(self, palette=None):
+
+        return plot_design_matrix(self.X, 
+                                  palette=palette)
 
 class ConcatenatedResponseFitter(ResponseFitter):
 

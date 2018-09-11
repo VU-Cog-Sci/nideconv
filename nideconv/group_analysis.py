@@ -10,6 +10,10 @@ import logging
 
 class GroupResponseFitter(object):
 
+    """Can fit a group of individual subjects and/or
+    runs using a high-level interface.
+    """
+
     def __init__(self,
                  timeseries,
                  onsets,
@@ -133,7 +137,7 @@ class GroupResponseFitter(object):
                         durations = None
 
                     self.response_fitters[col].add_event(e,
-                                                       onset_times=self.onsets.loc[col + (e,), 'onset'],
+                                                       onsets=self.onsets.loc[col + (e,), 'onset'],
                                                        basis_set=basis_set,
                                                        interval=interval,
                                                        n_regressors=n_regressors,
@@ -270,6 +274,13 @@ class GroupResponseFitter(object):
                 event_types = [event_types]
             
             tc = tc[np.in1d(tc['event type'], event_types)]
+
+        if covariates is not None:
+
+            if type(covariates) is str:
+                covariates = [covariates]
+            
+            tc = tc[np.in1d(tc['covariate'], covariates)]
 
         return plot_timecourses(tc,
                                 plots=plots,

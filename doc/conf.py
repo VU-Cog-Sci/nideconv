@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# response_fytter documentation build configuration file, created by
+# nideconv documentation build configuration file, created by
 # sphinx-quickstart on Sat Nov 11 16:45:31 2017.
 #
 # This file is execfile()d with the current directory set to its
@@ -40,7 +40,11 @@ extensions = ['sphinx.ext.autodoc',
     'sphinx.ext.mathjax',
     'sphinx.ext.ifconfig',
     'sphinx.ext.autosummary',
-    'sphinx.ext.viewcode']
+    'sphinx.ext.viewcode',
+    'sphinx_gallery.gen_gallery',
+    'IPython.sphinxext.ipython_console_highlighting',
+    'IPython.sphinxext.ipython_directive',
+    'numpydoc']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -55,9 +59,9 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = 'response_fytter'
-copyright = '2017, Tomas Knapen'
-author = 'Tomas Knapen'
+project = 'nideconv'
+copyright = '2017, Gilles de Hollander & Tomas Knapen'
+author = ['Gilles de Hollander', 'Tomas Knapen']
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -73,11 +77,11 @@ source_version = __version__
 # --- Sphinx Gallery ---
 sphinx_gallery_conf = {
     # path to your examples scripts
-    'examples_dirs': '../examples',
+    'examples_dirs': ['../examples', '../tutorials'],
     # path where to save gallery generated examples
-    'gallery_dirs': 'auto_examples',
+    'gallery_dirs': ['auto_examples', 'tutorials'],
     # To auto-generate example sections in the API
-    'doc_module': ('response_fytter',),
+    'doc_module': ('nideconv',),
     # Auto-generated mini-galleries go here
     'backreferences_dir': 'gen_api'
 }
@@ -116,7 +120,8 @@ todo_include_todos = True
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'alabaster'
+html_theme = "sphinx_rtd_theme"
+html_theme_path = ["_themes", ]
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -145,7 +150,7 @@ html_sidebars = {
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'response_fytterdoc'
+htmlhelp_basename = 'nideconvdoc'
 
 
 # -- Options for LaTeX output ---------------------------------------------
@@ -172,7 +177,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'response_fytter.tex', 'response\\_fytter Documentation',
+    (master_doc, 'nideconv.tex', 'nideconv Documentation',
      'Tomas Knapen', 'manual'),
 ]
 
@@ -182,7 +187,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'response_fytter', 'response_fytter Documentation',
+    (master_doc, 'nideconv', 'nideconv Documentation',
      [author], 1)
 ]
 
@@ -193,10 +198,13 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'response_fytter', 'response_fytter Documentation',
-     author, 'response_fytter', 'One line description of project.',
+    (master_doc, 'nideconv', 'nideconv Documentation',
+     author, 'nideconv', 'One line description of project.',
      'Miscellaneous'),
 ]
 
 
-
+import mock
+MOCK_MODULES = ['pystan', 'pymc3', 'theano', 'theano.tensor']
+for mod_name in MOCK_MODULES:
+    sys.modules[mod_name] = mock.Mock()
