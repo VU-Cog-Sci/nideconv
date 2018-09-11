@@ -16,26 +16,26 @@ class HierarchicalBayesianModel(object):
         self.subj_idxs = []
         self.design_matrices = []
         self.signals = []
-        self.response_fytters = []
+        self.response_fitters = []
 
         self.oversample_design_matrix = oversample_design_matrix
         
-    def add_run(self, fytter, subj_idx):
-        
-        if len(self.design_matrices) == 0:            
+    def add_run(self, fitter, subj_idx):
+
+        if len(self.design_matrices) == 0:     
             self.subj_idxs.append(subj_idx)
-            self.signals.append(fytter.input_signal)
-            self.design_matrices.append(fytter.X)
-            self.response_fytters.append(fytter)
+            self.signals.append(fitter.input_signal)
+            self.design_matrices.append(fitter.X)
+            self.response_fitters.append(fitter)
         else:
             self.subj_idxs.append(subj_idx)
-            self.signals.append(fytter.input_signal)
+            self.signals.append(fitter.input_signal)
             
-            if not ((fytter.X.columns == self.design_matrices[0].columns).all()):
+            if not ((fitter.X.columns == self.design_matrices[0].columns).all()):
                 raise Exception('Different design matrices!')
             
-            self.design_matrices.append(fytter.X)
-            self.response_fytters.append(fytter)            
+            self.design_matrices.append(fitter.X)
+            self.response_fitters.append(fitter)            
             
             
     def build_model(self, backend='stan', subjectwise_errors=False,
@@ -96,7 +96,7 @@ class HierarchicalBayesianModel(object):
 
         timecourses = []
 
-        for event_key, event in self.response_fytters[0].events.items():
+        for event_key, event in self.response_fitters[0].events.items():
             
             for covariate in event.covariates.columns:
                 L = event.get_basis_function(oversample=oversample)
@@ -122,7 +122,7 @@ class HierarchicalBayesianModel(object):
         traces = self._model.get_subject_traces()
 
         for subject_id in traces.columns.levels[0]:
-            for event_key, event in self.response_fytters[0].events.items():
+            for event_key, event in self.response_fitters[0].events.items():
                 for covariate in event.covariates.columns:
                     L = event.get_basis_function(oversample=oversample)
                     columns = pd.MultiIndex.from_product([[subject_id], [event_key], [covariate], L.index], 
@@ -232,11 +232,13 @@ class HierarchicalBayesianModel(object):
         return fac 
 
     @classmethod
-    def from_groupresponsefytter(cls, group_response_fytter):
-        hbm = cls(oversample_design_matrix=group_response_fytter.oversample_design_matrix)
-        for i, (idx, rf) in group_response_fytter._groupby_ts():
-            hbm.add_run(group_response_fytter.response_fitters[i],
-                        idx[0])
+    def from_groupresponsefitter(cls, group_response_fitter):
+        hbm = cls(oversample_design_matrix=group_response_fitter.oversample_design_matrix)
+
+        subject_col = group_response_fitter.response_fitters.index.names.index('subject')
+
+        for ix, rf in group_response_fitter.response_fitters.items():
+            hbm.add_run(rf, ix[subject_col])
 
         return hbm
 
