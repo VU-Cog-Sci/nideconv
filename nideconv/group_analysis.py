@@ -45,6 +45,9 @@ class GroupResponseFitter(object):
             if field in self.timeseries.index.names:
                 self.timeseries.reset_index(field, inplace=True)
 
+            if field in self.confounds.index.names:
+                self.confounds.reset_index(field, inplace=True)
+
         if 'event' in self.onsets.index.names:
             self.onsets.reset_index('event', inplace=True)
 
@@ -58,10 +61,6 @@ class GroupResponseFitter(object):
             else:
                 self.onsets['trial_type'] = 'intercept'
 
-        self.timeseries['t'] = self.timeseries.groupby(self.index_columns).apply(_make_time_column, 
-                                                                                 input_sample_rate)
-
-
         index = pd.MultiIndex(names=self.index_columns,
                               levels=[[]]*len(self.index_columns),
                               labels=[[]]*len(self.index_columns),) 
@@ -71,12 +70,20 @@ class GroupResponseFitter(object):
             raise Exception('GroupDeconvolution is only to be used for datasets with multiple subjects'
                              'or runs')
         else:
-            self.timeseries = self.timeseries.set_index(self.index_columns + ['t'])
+            self.timeseries = self.timeseries.set_index(self.index_columns)
+            self.timeseries['t'] = _make_time_column(self.timeseries,
+                                                     self.index_columns,
+                                                     input_sample_rate)
+            self.timeseries.set_index('t', inplace=True, append=True)
+
             self.onsets = self.onsets.set_index(self.index_columns + ['trial_type'])
 
             if self.confounds is not None:
-                self.confounds['t'] = self.confounds.groupby(self.index_columns).apply(_make_time_column, 
-                                                                                       input_sample_rate)
+                self.confounds = self.confounds.set_index(self.index_columns)
+                self.confounds['t'] = _make_time_column(self.confounds,
+                                                        self.index_columns,
+                                                        input_sample_rate)
+                
                 self.confounds = self.confounds.set_index('t', append=True)
 
             for idx, ts in self.timeseries.groupby(level=self.index_columns):
@@ -300,6 +307,12 @@ class GroupResponseFitter(object):
         
 
 
-def _make_time_column(d, sample_rate):
-    return pd.DataFrame(np.arange(0, len(d) * 1./sample_rate, 1./sample_rate), index=d.index)
+def _make_time_column(df, index_columns, sample_rate):
+    t = pd.Series(np.zeros(len(df)), index=df.index)
 
+    TR = 1./sample_rate
+
+    for ix, d in df.groupby(index_columns):
+        t.loc[ix] = np.arange(0, len(df.loc[ix]) * TR, TR)
+
+    return t
