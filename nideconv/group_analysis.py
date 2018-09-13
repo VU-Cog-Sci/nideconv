@@ -45,8 +45,9 @@ class GroupResponseFitter(object):
             if field in self.timeseries.index.names:
                 self.timeseries.reset_index(field, inplace=True)
 
-            if field in self.confounds.index.names:
-                self.confounds.reset_index(field, inplace=True)
+            if confounds is not None:
+                if field in self.confounds.index.names:
+                    self.confounds.reset_index(field, inplace=True)
 
         if 'event' in self.onsets.index.names:
             self.onsets.reset_index('event', inplace=True)
