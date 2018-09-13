@@ -22,7 +22,11 @@ class HierarchicalBayesianModel(object):
         
     def add_run(self, fitter, subj_idx):
 
-        if len(self.design_matrices) == 0:     
+        if fitter.input_signal.shape[1] > 1:
+            raise Exception('HierarchicalBayesianModel currently only works for '
+                            'data with only one feature (ROI).')
+
+        if len(self.design_matrices) == 0: 
             self.subj_idxs.append(subj_idx)
             self.signals.append(fitter.input_signal)
             self.design_matrices.append(fitter.X)
