@@ -8,7 +8,7 @@ def plot_hpd(data, alpha=0.05, transparency=0.1, melted=None, *args, **kwargs):
         melted = data.columns.names[-1] != 't'
     
     hpd = get_hpd(data, alpha=alpha)   
-    plt.fill_between(hpd.index.get_level_values('t'), hpd.values[:, 0], ahpd.values[:, 1],lpha=transparency, *args, **kwargs)
+    plt.fill_between(hpd.index.get_level_values('t'), hpd.values[:, 0], hpd.values[:, 1],alpha=transparency, *args, **kwargs)
     
     if melted:
         plt.plot(data.groupby(['t']).value.mean())
