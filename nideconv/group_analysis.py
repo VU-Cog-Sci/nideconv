@@ -181,6 +181,7 @@ class GroupResponseFitter(object):
                            store_residuals)
 
     def get_timecourses(self, oversample=None,
+                        melt=False,
                         concatenate_runs=None):
 
         if concatenate_runs is None:
@@ -202,6 +203,12 @@ class GroupResponseFitter(object):
         index_names = tc_.index.names
         tc.index.set_names(index_names, level=range(len(index_names)), 
                            inplace=True)
+
+        if melt:
+            return tc.reset_index().melt(id_vars=tc.index.names,
+                                         var_name='roi')
+        else:
+            return tc
 
         return tc
 
@@ -306,6 +313,63 @@ class GroupResponseFitter(object):
                                 **kwargs)
 
         
+    def plot_subject_timecourses(self,
+                                   event_types=None,
+                                   covariates=None,
+                                   plots='roi',
+                                   col='subject',
+                                   row=None,
+                                   col_wrap=4,
+                                   hue='event type',
+                                   max_n_plots=40,
+                                   oversample=None,
+                                   extra_axes=True,
+                                   sharex=True,
+                                   sharey=False,
+                                   aspect=1.5,
+                                   unit=None,
+                                   *args,
+                                   **kwargs):
+
+        tc = self.get_timecourses(oversample=oversample,
+                                  melt=True)
+
+        if event_types is not None:
+
+            if type(event_types) is str:
+                event_types = [event_types]
+            
+            tc = tc[np.in1d(tc['event type'], event_types)]
+
+        if covariates is not None:
+
+            if type(covariates) is str:
+                covariates = [covariates]
+            
+            tc = tc[np.in1d(tc['covariate'], covariates)]
+
+        if unit is None:
+            if 'run' in self.index_columns:
+                unit = 'run'
+            else:
+                unit = 'subject'
+
+        return plot_timecourses(tc,
+                                plots=plots,
+                                col=col,
+                                row=row,
+                                col_wrap=col_wrap,
+                                hue=hue,
+                                max_n_plots=max_n_plots,
+                                oversample=oversample,
+                                extra_axes=extra_axes,
+                                sharex=sharex,
+                                sharey=sharey,
+                                aspect=aspect,
+                                unit=unit,
+                                *args,
+                                **kwargs)
+
 
 
 def _make_time_column(df, index_columns, sample_rate):

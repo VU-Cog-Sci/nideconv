@@ -17,6 +17,7 @@ def plot_timecourses(tc,
                      col_order=None,
                      size=3,
                      legend=True,
+                     unit='subject',
                      *args,
                      **kwargs):
 
@@ -39,7 +40,7 @@ def plot_timecourses(tc,
 
         fac.map_dataframe(sns.tsplot,
                           time='time',
-                          unit='subject',
+                          unit=unit,
                           condition=hue,
                           value='value',
                           color=sns.color_palette(),
