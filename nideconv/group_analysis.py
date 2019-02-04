@@ -172,21 +172,14 @@ class GroupResponseFitter(object):
                            alphas,
                            store_residuals)
 
-    def get_timecourses(self, oversample=None,
+    def get_timecourses(self,
+                        oversample=None,
                         concatenate_runs=None):
-
-        if concatenate_runs is None:
-            concatenate_runs = self.concatenate_runs
 
         if oversample is None:
             oversample = self.oversample_design_matrix
 
-        if concatenate_runs:
-            if not hasattr(self, 'concat_response_fitters'):
-                raise Exception('GroupDeconvolution not yet fitted')
-            rfs = self.concat_response_fitters
-        else:
-            rfs = self.response_fitters
+        rfs = self._get_response_fitters(concatenate_runs)
 
         tc_ = rfs.apply(lambda rf: rf.get_timecourses(oversample))
 
@@ -196,6 +189,40 @@ class GroupResponseFitter(object):
                            inplace=True)
 
         return tc
+
+    def get_t_value_timecourses(self,
+                                oversample=None,
+                                concatenate_runs=None):
+
+
+        if oversample is None:
+            oversample = self.oversample_design_matrix
+
+        rfs = self._get_response_fitters(concatenate_runs)
+
+        t_ = rfs.apply(lambda rf: rf.get_t_value_timecourses(oversample))
+
+        t = pd.concat(t_.to_dict())
+        index_names = t_.index.names
+        t_.index.set_names(index_names, level=range(len(index_names)), 
+                           inplace=True)
+
+        return t
+
+    def _get_response_fitters(self,
+                              concatenate_runs=None):
+
+        if concatenate_runs is None:
+            concatenate_runs = self.concatenate_runs
+
+        if concatenate_runs:
+            if not hasattr(self, 'concat_response_fitters'):
+                raise Exception('GroupResponseFitter not yet fitted')
+            rfs = self.concat_response_fitters
+        else:
+            rfs = self.response_fitters
+
+        return rfs
 
 
     def _groupby_ts_runs(self): 
