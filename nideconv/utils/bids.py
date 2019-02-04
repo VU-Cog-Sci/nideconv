@@ -1,5 +1,5 @@
 import pandas as pd
-from bids.grabbids import BIDSLayout
+from bids import BIDSLayout
 
 from .roi import extract_timecourse_from_nii
 
