@@ -44,6 +44,10 @@ class GroupResponseFitter(object):
         if 'event' in self.onsets.index.names:
             self.onsets.reset_index('event', inplace=True)
 
+        if ('subject' not in self.timeseries.columns) and ('subject' not in self.onsets.colums):
+            self.timeseries['subject'] = 1
+            self.onsets['subject'] = 1
+
         for c in idx_fields:
             if c in self.timeseries.columns:
                 self.index_columns.append(c)
