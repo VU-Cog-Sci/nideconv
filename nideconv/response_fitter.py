@@ -192,8 +192,8 @@ class ResponseFitter(object):
         return sem
 
     def get_t_value_timecourses(self,
-                                melt=False,
-                                oversample=None):
+                                oversample=None,
+                                melt=False):
 
         tc = self.get_timecourses(oversample=oversample,
                                   melt=melt)
