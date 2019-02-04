@@ -152,23 +152,59 @@ class ResponseFitter(object):
 
         """
         if type == 'ols':
+            n, p = self.X.shape
+
             self.betas, self.ssquares, self.rank, self.s = \
                                 np.linalg.lstsq(self.X, self.input_signal, rcond=-1)
             self._send_betas_to_regressors()
 
-            if self.rank < self.X.shape[1]:
+            if self.rank < p:
                 raise Exception('Design matrix is singular. Consider using less '
                                 'regressors, basis functions, or try ridge regression.')
 
-            prediction = self.X.dot(self.betas)
+
+            self.sigma2 = self.ssquares / (n -(p+1))
+            self.sigma2 = pd.Series(self.sigma2, index=self.input_signal.columns)
 
             if store_residuals:
+                prediction = self.X.dot(self.betas)
                 self._residuals = self.input_signal - prediction
 
         elif type == 'ridge':   # betas and residuals are internalized by ridge_regress
             if self.input_signal.shape[1] > 1:
                 raise NotImplementedError('No support for multidimensional signals yet')
             self.ridge_regress(cv=cv, alphas=alphas, store_residuals=store_residuals)
+
+
+    def get_standard_errors_timecourse(self, melt=False, oversample=None):
+        self._check_fitted()
+        c = self.get_basis_functions(oversample=oversample)
+        X_= np.linalg.pinv(self.X.T.dot(self.X))
+        sem = np.sqrt((c.values.dot(X_) * c).sum(1).values[:, np.newaxis] * self.sigma2[np.newaxis, :])
+        sem = pd.DataFrame(sem, index=c.index, columns=self.sigma2.index)
+
+        if melt:
+            sem = sem.reset_index().melt(id_vars=['event type',
+                                                  'covariate',
+                                                  'time'],
+                                                         var_name='roi')
+
+        return sem
+
+    def get_t_value_timecourses(self,
+                                melt=False,
+                                oversample=None):
+
+        tc = self.get_timecourses(oversample=oversample,
+                                  melt=melt)
+        sem = self.get_standard_errors_timecourse(melt=melt,
+                                                   oversample=oversample)
+        t = tc / sem
+        t = pd.concat([t], keys=['t'], names=['stat'], axis=1)
+        return t
+
+
+
 
 
     def ridge_regress(self, cv=20, alphas=None, store_residuals=False):
@@ -246,6 +282,31 @@ class ResponseFitter(object):
 
         return prediction
 
+    def get_basis_functions(self, oversample=None):
+        
+        if oversample is None:
+            oversample = self.oversample_design_matrix
+        
+      
+        names = ['event type', 'covariate', 'time']
+        row_index = pd.MultiIndex(names=names,
+                                 levels=[[], [], []],
+                                  labels=[[], [], []])
+        
+        bf = pd.DataFrame(columns=self.X.columns, index=row_index) 
+        
+        for event_type, event in self.events.items():
+            for covariate in event.covariates.columns:
+                ev = event.get_basis_function(oversample=oversample)
+                ev.index = pd.MultiIndex.from_product([[event_type], [covariate], ev.index.get_values()],
+                                                       names=names)
+                ev.columns = pd.MultiIndex.from_product([[event_type], [covariate], ev.columns.get_values()],
+                                                       names=['event type', 'covariate', 'regressor'])
+                bf = pd.concat((bf, ev), axis=0, )
+                
+        bf.fillna(0, inplace=True)
+            
+        return bf
 
     def get_timecourses(self, 
                         oversample=None,
@@ -426,6 +487,9 @@ class ResponseFitter(object):
 
         return fac
 
+    def _check_fitted(self):
+        assert hasattr(self, 'betas'), \
+                        'no betas found, please run regression before rsq'
 
 class ConcatenatedResponseFitter(ResponseFitter):
 
@@ -479,6 +543,7 @@ class ConcatenatedResponseFitter(ResponseFitter):
 
     def get_epochs(self, onsets, interval, remove_incomplete_epochs=True):
         raise NotImplementedError()
+
 
 def check_properties_response_fitters(response_fitters, attribute):
 
