@@ -1,0 +1,1 @@
+recursive-include nideconv/hierarchical_bayes/stan_models *.stan *.pkl
