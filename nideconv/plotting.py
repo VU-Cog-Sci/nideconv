@@ -38,11 +38,10 @@ def plot_timecourses(tc,
                             aspect=aspect,
                             col_order=col_order)
 
-        fac.map_dataframe(sns.tsplot,
-                          time='time',
-                          unit='subject',
-                          condition=hue,
-                          value='value',
+        fac.map_dataframe(sns.lineplot,
+                          x='time',
+                          hue=hue,
+                          y='value',
                           color=sns.color_palette(),
                           *args,
                           **kwargs)
