@@ -80,6 +80,8 @@ class GroupResponseFitter(object):
                 self.confounds = self.confounds.set_index(self.index_columns + ['t'])
 
             for idx, ts in self.timeseries.groupby(level=self.index_columns):
+
+
                 rf = ResponseFitter(ts,
                                     input_sample_rate,
                                     self.oversample_design_matrix,
@@ -87,6 +89,8 @@ class GroupResponseFitter(object):
                                     **kwargs)
                 self.response_fitters.loc[idx] = rf
                 if self.confounds is not None:
+                    if type(idx) is int:
+                        idx = idx,
                     self.response_fitters.loc[idx].add_confounds('confounds', self.confounds.loc[idx])
 
 
