@@ -211,7 +211,7 @@ class GroupResponseFitter(object):
 
         t = pd.concat(t_.to_dict())
         index_names = t_.index.names
-        t_.index.set_names(index_names, level=range(len(index_names)), 
+        t.index.set_names(index_names, level=range(len(index_names)), 
                            inplace=True)
 
         return t
