@@ -44,9 +44,12 @@ class GroupResponseFitter(object):
         if 'event' in self.onsets.index.names:
             self.onsets.reset_index('event', inplace=True)
 
-        if ('subject' not in self.timeseries.columns) and ('subject' not in self.onsets.colums):
+        if ('subject' not in self.timeseries.columns) and ('subject' not in self.onsets.columns):
             self.timeseries['subject'] = 1
             self.onsets['subject'] = 1
+
+            if self.confounds is not None:
+                self.confounds['subject'] = 1
 
         for c in idx_fields:
             if c in self.timeseries.columns:
