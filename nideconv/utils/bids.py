@@ -1,6 +1,5 @@
 import pandas as pd
 from bids import BIDSLayout
-
 from .roi import extract_timecourse_from_nii
 
 def get_fmriprep_timeseries(fmriprep_folder,

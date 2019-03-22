@@ -5,7 +5,6 @@ from nilearn._utils import check_niimg
 from nilearn import image
 import numpy as np
 
-
 def extract_timecourse_from_nii(atlas,
                                 nii,
                                 mask=None,
