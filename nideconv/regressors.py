@@ -17,20 +17,37 @@ from .utils import (get_proper_interval,
 
 def _create_fir_basis(interval, sample_rate, n_regressors, oversample=1):
     """"""
-    basis = np.eye(n_regressors)    
-    basis_timepoints = np.linspace(interval[0], interval[1], n_regressors)
 
-    timepoints = np.arange(interval[0], 
-                           interval[1] + (1./sample_rate/oversample), 
-                           1./sample_rate / oversample) 
+    regressor_labels = ['fir_%d' % i for i in np.arange(n_regressors)]
 
-    rescaled_basis = np.zeros((len(timepoints), n_regressors))    
+    total_length = interval[1] - interval[0]
+    step_length = total_length / n_regressors
 
+    basis = np.eye(n_regressors)
 
-    for reg in range(n_regressors):
-        rescaled_basis[:, reg] = np.interp(timepoints, basis_timepoints, basis[:, reg])
-        
-    return rescaled_basis
+    orig_timepoints = np.linspace(interval[0],
+                                  interval[1],
+                                  total_length * sample_rate,
+                                  endpoint=False)
+
+    timepoints_ = np.linspace(orig_timepoints[0],
+                                         orig_timepoints[-1],
+                                         len(orig_timepoints) * oversample - (oversample - 1))
+
+    if oversample == 1:
+        fir = basis
+    else:
+        #basis_ = np.vstack((np.zeros(basis.shape[1]), basis, np.zeros(basis.shape[1])))
+
+        fir = np.zeros((len(timepoints_), n_regressors))    
+        print(fir.shape)
+
+        for reg in range(n_regressors):
+            fir[:, reg] = np.interp(timepoints_, orig_timepoints, basis[:, reg])
+
+        print(fir.shape, timepoints_.shape, len(regressor_labels)) 
+
+    return pd.DataFrame(fir, index=timepoints_, columns=regressor_labels)
 
 def _create_canonical_hrf_basis(interval, sample_rate, n_regressors, oversample=1):
     timepoints = np.arange(interval[0], 
@@ -295,6 +312,7 @@ class Event(Regressor):
 
         columns = pd.MultiIndex.from_product(([self.name], self.covariates.columns, L.columns),
                                              names=['event_type', 'covariate', 'regressor'])
+
         oversampled_timepoints = np.linspace(0, 
                                              self.fitter.input_signal.shape[0] * self.sample_duration, 
                                              self.fitter.input_signal.shape[0] * oversample,
@@ -332,16 +350,22 @@ class Event(Regressor):
 
     def get_basis_function(self, oversample=1):
 
-        timepoints = np.arange(self.interval[0], 
-                               self.interval[1] + (1./self.sample_rate/oversample), 
-                               1./self.sample_rate / oversample) 
+        #timepoints = np.arange(self.interval[0], 
+                               #self.interval[1] + (1./self.sample_rate/oversample), 
+                               #1./self.sample_rate / oversample) 
+
+        step_length = (self.interval[1] - self.interval[0]) / self.n_regressors
+
+        #timepoints = np.linspace(self.interval[0] +  .5 * step_length / oversample, 
+                                 #self.interval[1] -  .5 * step_length / oversample, 
+                                 #self.n_regressors * oversample,
+                                 #endpoint=True)
 
         # only for fir, the nr of regressors is dictated by the interval and sample rate
         if type(self.basis_set) is str:
 
             if self.basis_set == 'fir':
                 L = _create_fir_basis(self.interval, self.sample_rate, self.n_regressors, oversample)
-                regressor_labels = ['fir_%d' % i for i in np.arange(self.n_regressors)]
 
             elif self.basis_set == 'fourier':
                 L = _create_fourier_basis(self.interval, self.sample_rate, self.n_regressors, oversample)
@@ -350,7 +374,7 @@ class Event(Regressor):
                 regressor_labels += ['fourier_cos_%d_period' % period for period in np.arange(1, self.n_regressors//2 + 1)]
 
             elif self.basis_set == 'legendre':
-                L = _create_legendre_basis(self.interval, self.sample_rate, self.n_regressors, oversample)
+                L = _create_legendre_basis(self.interval, self.sample_rate, self._regressors, oversample)
                 regressor_labels = ['legendre_%d' % poly for poly in np.arange(1, self.n_regressors + 1)]
 
             elif self.basis_set == 'canonical_hrf':
@@ -375,9 +399,9 @@ class Event(Regressor):
             L = interp(timepoints)
 
 
-        L = pd.DataFrame(L,
-                         columns=pd.Index(regressor_labels, name='basis_function'),
-                         index=pd.Index(timepoints, name='time'))
+        #L = pd.DataFrame(L,
+                         #columns=pd.Index(regressor_labels, name='basis_function'),)
+                         #index=L.index)
 
         return L
         
