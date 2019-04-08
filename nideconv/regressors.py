@@ -22,7 +22,7 @@ def _get_timepoints(interval,
     total_length = interval[1] - interval[0]
     timepoints = np.linspace(interval[0],
                               interval[1],
-                              total_length * sample_rate * oversample,
+                              int(total_length * sample_rate * oversample),
                               endpoint=False)
     return timepoints
 
@@ -250,6 +250,13 @@ class Event(Regressor):
                     self.n_regressors = int((self.interval[1] - self.interval[0]) / self.sample_duration)
                     warnings.warn('Number of FIR regressors has automatically been set to %d '
                                   'per covariate' % self.n_regressors)
+
+                length_interval = self.interval[1] - self.interval[0]
+                if self.n_regressors  > (length_interval / self.sample_rate):
+                    warnings.warn('Number of FIR regressors ({}) is larger than the number of timepoints in the interval '
+                                  '({}). '
+                                  'This model can only be fit using regularized methods.'.format(self.n_regressors,
+                                                                                                 int(length_interval / self.sample_rate)))
 
             # legendre and fourier basis sets should be odd
             elif self.basis_set in ('fourier', 'legendre'):
