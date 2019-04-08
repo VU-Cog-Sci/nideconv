@@ -67,7 +67,7 @@ class GroupResponseFitter(object):
 
         index = pd.MultiIndex(names=self.index_columns,
                               levels=[[]]*len(self.index_columns),
-                              labels=[[]]*len(self.index_columns),) 
+                              codes=[[]]*len(self.index_columns),) 
         self.response_fitters = pd.Series(index=index) 
 
         if self.index_columns is []:
@@ -130,7 +130,7 @@ class GroupResponseFitter(object):
                     if covariates is None:
                         covariate_matrix = None
                     else:
-                        covariate_matrix = self.onsets.loc[col + (e,), covariates]
+                        covariate_matrix = self.onsets.loc[[col + (e,)], covariates]
 
                         if add_intercept:
                             intercept_matrix = pd.DataFrame(np.ones((len(covariate_matrix), 1)),
@@ -138,13 +138,15 @@ class GroupResponseFitter(object):
                                                             index=covariate_matrix.index)
                             covariate_matrix = pd.concat((intercept_matrix, covariate_matrix), 1)
                     
-                    if 'duration' in self.onsets and np.isfinite(self.onsets.loc[col + (e,), 'duration']).all():
-                        durations = self.onsets.loc[col + (e,), 'duration']
+                    if 'duration' in self.onsets and np.isfinite(self.onsets.loc[[col + (e,)], 'duration']).all():
+                        durations = self.onsets.loc[[col + (e,)], 'duration']
                     else:
                         durations = None
 
+                    #print(e, self.onsets.loc[[col + (e,)], 'onset'].shape, durations.sha[p)
+
                     self.response_fitters[col].add_event(e,
-                                                       onset_times=self.onsets.loc[col + (e,), 'onset'],
+                                                       onset_times=self.onsets.loc[[col + (e,)], 'onset'],
                                                        basis_set=basis_set,
                                                        interval=interval,
                                                        n_regressors=n_regressors,
