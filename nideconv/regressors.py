@@ -7,7 +7,7 @@ response
 
 import numpy as np
 import scipy as sp
-from scipy import signal
+from scipy import signal, interpolate
 import pandas as pd
 import warnings
 from .utils import (get_proper_interval,
@@ -15,63 +15,70 @@ from .utils import (get_proper_interval,
                     get_time_to_peak_from_timecourse,
                     double_gamma_with_d_time_derivative)
 
+def _get_timepoints(interval, 
+                    sample_rate,
+                    oversample):
+
+    total_length = interval[1] - interval[0]
+    timepoints = np.linspace(interval[0],
+                              interval[1],
+                              total_length * sample_rate * oversample,
+                              endpoint=False)
+    return timepoints
+
 def _create_fir_basis(interval, sample_rate, n_regressors, oversample=1):
     """"""
 
     regressor_labels = ['fir_%d' % i for i in np.arange(n_regressors)]
 
     total_length = interval[1] - interval[0]
-    step_length = total_length / n_regressors
-
     basis = np.eye(n_regressors)
+    basis = np.vstack((basis, basis[-1]))
 
     orig_timepoints = np.linspace(interval[0],
                                   interval[1],
-                                  total_length * sample_rate,
-                                  endpoint=False)
+                                  n_regressors + 1, # Include endpoint to allow interpolation 
+                                  endpoint=True)                  # below
 
-    timepoints_ = np.linspace(orig_timepoints[0],
-                                         orig_timepoints[-1],
-                                         len(orig_timepoints) * oversample - (oversample - 1))
+    timepoints = _get_timepoints(interval, sample_rate, oversample)
 
-    if oversample == 1:
-        fir = basis
-    else:
-        #basis_ = np.vstack((np.zeros(basis.shape[1]), basis, np.zeros(basis.shape[1])))
+    fir = interpolate.interp1d(orig_timepoints,
+                               basis,
+                               kind='nearest',
+                               axis =0)(timepoints)
 
-        fir = np.zeros((len(timepoints_), n_regressors))    
-        print(fir.shape)
-
-        for reg in range(n_regressors):
-            fir[:, reg] = np.interp(timepoints_, orig_timepoints, basis[:, reg])
-
-        print(fir.shape, timepoints_.shape, len(regressor_labels)) 
-
-    return pd.DataFrame(fir, index=timepoints_, columns=regressor_labels)
+    return pd.DataFrame(fir,
+                        index=timepoints,
+                        columns=regressor_labels) \
+                            .rename_axis('time') \
+                            .rename_axis('basis function', axis=1)
 
 def _create_canonical_hrf_basis(interval, sample_rate, n_regressors, oversample=1):
-    timepoints = np.arange(interval[0], 
-                           interval[1] + (1./sample_rate/oversample), 
-                           1./sample_rate / oversample) 
-    
-    return double_gamma_with_d(timepoints)[:, np.newaxis]
+    timepoints = _get_timepoints(interval, sample_rate, oversample)
+    basis_function =  double_gamma_with_d(timepoints)[:, np.newaxis]
+
+    return pd.DataFrame(basis_function,
+                        index=timepoints,
+                        columns=['canonical HRF']) \
+                        .rename_axis('time') \
+                        .rename_axis('basis function', axis=1) 
 
 def _create_canonical_hrf_with_time_derivative_basis(interval, sample_rate, n_regressors, oversample=1):
-    timepoints = np.arange(interval[0], 
-                           interval[1] + (1./sample_rate/oversample), 
-                           1./sample_rate / oversample) 
+    timepoints = _get_timepoints(interval, sample_rate, oversample)
     
     hrf = double_gamma_with_d(timepoints)
     dt_hrf = double_gamma_with_d_time_derivative(timepoints)
 
-    return np.array([hrf, dt_hrf]).T
+    return pd.DataFrame(np.array([hrf, dt_hrf]).T,
+                        index=timepoints,
+                        columns=['HRF', 'HRF (derivative wrt time-to-peak)']) \
+                        .rename_axis('time') \
+                        .rename_axis('basis function', axis=1) 
 
 def _create_fourier_basis(interval, sample_rate, n_regressors, oversample=1):
     """"""
     
-    timepoints = np.arange(interval[0], 
-                           interval[1] + (1./sample_rate/oversample), 
-                           1./sample_rate / oversample) 
+    timepoints = _get_timepoints(interval, sample_rate, oversample)
     
     L_fourier = np.zeros((len(timepoints), n_regressors))
     
@@ -85,15 +92,28 @@ def _create_fourier_basis(interval, sample_rate, n_regressors, oversample=1):
         #     cos_regressor 
         L_fourier[:, 1+r+int(n_regressors/2)] = np.sqrt(2) * np.cos(x)
 
-    return L_fourier
+    regressor_labels = ['fourier_intercept']
+    regressor_labels += ['fourier_sin_%d_period' % period for period in np.arange(1, n_regressors//2 + 1)]
+    regressor_labels += ['fourier_cos_%d_period' % period for period in np.arange(1, n_regressors//2 + 1)]
+
+    return pd.DataFrame(L_fourier,
+                        index=timepoints,
+                        columns=regressor_labels) \
+                        .rename_axis('time') \
+                        .rename_axis('basis function', axis=1) 
 
 def _create_legendre_basis(interval, sample_rate, n_regressors, oversample=1):
     """"""
 
+    regressor_labels = ['legendre_%d' % poly for poly in np.arange(1, self.n_regressors + 1)]
     x = np.linspace(-1, 1, int(np.diff(interval)) * oversample + 1, endpoint=True)
     L_legendre = np.polynomial.legendre.legval(x=x, c=np.eye(n_regressors)).T
 
-    return L_legendre
+    return pd.DataFrame(L_legendre,
+                        index=timepoints,
+                        columns=regressor_labels) \
+                        .rename_axis('time') \
+                        .rename_axis('basis function', axis=1) 
 
 
 class Regressor(object):
@@ -227,7 +247,7 @@ class Event(Regressor):
         else:
             if self.basis_set == 'fir':
                 if self.n_regressors is None:
-                    self.n_regressors = int((self.interval[1] - self.interval[0]) / self.sample_duration) + 1
+                    self.n_regressors = int((self.interval[1] - self.interval[0]) / self.sample_duration)
                     warnings.warn('Number of FIR regressors has automatically been set to %d '
                                   'per covariate' % self.n_regressors)
 
@@ -350,16 +370,6 @@ class Event(Regressor):
 
     def get_basis_function(self, oversample=1):
 
-        #timepoints = np.arange(self.interval[0], 
-                               #self.interval[1] + (1./self.sample_rate/oversample), 
-                               #1./self.sample_rate / oversample) 
-
-        step_length = (self.interval[1] - self.interval[0]) / self.n_regressors
-
-        #timepoints = np.linspace(self.interval[0] +  .5 * step_length / oversample, 
-                                 #self.interval[1] -  .5 * step_length / oversample, 
-                                 #self.n_regressors * oversample,
-                                 #endpoint=True)
 
         # only for fir, the nr of regressors is dictated by the interval and sample rate
         if type(self.basis_set) is str:
@@ -369,13 +379,9 @@ class Event(Regressor):
 
             elif self.basis_set == 'fourier':
                 L = _create_fourier_basis(self.interval, self.sample_rate, self.n_regressors, oversample)
-                regressor_labels = ['fourier_intercept']
-                regressor_labels += ['fourier_sin_%d_period' % period for period in np.arange(1, self.n_regressors//2 + 1)]
-                regressor_labels += ['fourier_cos_%d_period' % period for period in np.arange(1, self.n_regressors//2 + 1)]
 
             elif self.basis_set == 'legendre':
                 L = _create_legendre_basis(self.interval, self.sample_rate, self._regressors, oversample)
-                regressor_labels = ['legendre_%d' % poly for poly in np.arange(1, self.n_regressors + 1)]
 
             elif self.basis_set == 'canonical_hrf':
                 L = _create_canonical_hrf_basis(self.interval,
