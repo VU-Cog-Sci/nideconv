@@ -105,7 +105,7 @@ def _create_fourier_basis(interval, sample_rate, n_regressors, oversample=1):
 def _create_legendre_basis(interval, sample_rate, n_regressors, oversample=1):
     """"""
 
-    regressor_labels = ['legendre_{}'.format(int(poly)) for poly in np.arange(1, self.n_regressors + 1)]
+    regressor_labels = ['legendre_{}'.format(int(poly)) for poly in np.arange(1, n_regressors + 1)]
     x = np.linspace(-1, 1, int(np.diff(interval)) * oversample + 1, endpoint=True)
     L_legendre = np.polynomial.legendre.legval(x=x, c=np.eye(n_regressors)).T
 
@@ -387,7 +387,7 @@ class Event(Regressor):
                 L = _create_fourier_basis(self.interval, self.sample_rate, self.n_regressors, oversample)
 
             elif self.basis_set == 'legendre':
-                L = _create_legendre_basis(self.interval, self.sample_rate, self._regressors, oversample)
+                L = _create_legendre_basis(self.interval, self.sample_rate, self.n_regressors, oversample)
 
             elif self.basis_set == 'canonical_hrf':
                 L = _create_canonical_hrf_basis(self.interval,
