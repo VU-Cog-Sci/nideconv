@@ -246,13 +246,13 @@ class Event(Regressor):
 
         else:
             if self.basis_set == 'fir':
+                length_interval = self.interval[1] - self.interval[0]
                 if self.n_regressors is None:
-                    self.n_regressors = int((self.interval[1] - self.interval[0]) / self.sample_duration)
+                    self.n_regressors = int(length_interval / self.sample_duration)
                     warnings.warn('Number of FIR regressors has automatically been set to %d '
                                   'per covariate' % self.n_regressors)
 
-                length_interval = self.interval[1] - self.interval[0]
-                if self.n_regressors  > (length_interval / self.sample_rate):
+                if self.n_regressors  > (length_interval / self.sample_duration):
                     warnings.warn('Number of FIR regressors ({}) is larger than the number of timepoints in the interval '
                                   '({}). '
                                   'This model can only be fit using regularized methods.'.format(self.n_regressors,
