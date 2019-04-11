@@ -97,7 +97,7 @@ def simulate_fmri_experiment(conditions=None,
             if n_rois == 1:
                 columns = ['signal']
             else:
-                columns = ['area %d' % i for i in range(1, n_rois + 1)]
+                columns = ['area {}'.format(int(i)) for i in range(1, n_rois + 1)]
 
             tmp = pd.DataFrame(signal,
                                columns=columns)

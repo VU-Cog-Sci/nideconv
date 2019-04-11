@@ -108,7 +108,7 @@ class GroupResponseFitter(object):
 
         if event is None:
             event = self.onsets.index.get_level_values('trial_type').unique()
-            logging.warn('No event type was given, automatically entering the following event types: %s' % event)
+            logging.warn('No event type was given, automatically entering the following event types: {}'.format(str(event)))
 
         if type(event) is str:
             event = [event]
@@ -123,8 +123,8 @@ class GroupResponseFitter(object):
                     col = (col,)
                 
                 if col + (e,) not in self.onsets.index:
-                    warnings.warn('Event %s is not available for run %s. Event is ignored for this '
-                                  'run' % (e, col))
+                    warnings.warn('Event {} is not available for run {}. Event is ignored for this '
+                                  'run'.format(str(e), str(col)))
                 else:
 
                     if covariates is None:

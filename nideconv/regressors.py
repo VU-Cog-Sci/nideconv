@@ -29,7 +29,7 @@ def _get_timepoints(interval,
 def _create_fir_basis(interval, sample_rate, n_regressors, oversample=1):
     """"""
 
-    regressor_labels = ['fir_%d' % i for i in np.arange(n_regressors)]
+    regressor_labels = ['fir_{}'.format(int(i)) for i in np.arange(n_regressors)]
 
     total_length = interval[1] - interval[0]
     basis = np.eye(n_regressors)
@@ -93,8 +93,8 @@ def _create_fourier_basis(interval, sample_rate, n_regressors, oversample=1):
         L_fourier[:, 1+r+int(n_regressors/2)] = np.sqrt(2) * np.cos(x)
 
     regressor_labels = ['fourier_intercept']
-    regressor_labels += ['fourier_sin_%d_period' % period for period in np.arange(1, n_regressors//2 + 1)]
-    regressor_labels += ['fourier_cos_%d_period' % period for period in np.arange(1, n_regressors//2 + 1)]
+    regressor_labels += ['fourier_sin_{}_period'.format(int(period)) for period in np.arange(1, n_regressors//2 + 1)]
+    regressor_labels += ['fourier_cos_{}_period'.format(int(period)) for period in np.arange(1, n_regressors//2 + 1)]
 
     return pd.DataFrame(L_fourier,
                         index=timepoints,
@@ -105,7 +105,7 @@ def _create_fourier_basis(interval, sample_rate, n_regressors, oversample=1):
 def _create_legendre_basis(interval, sample_rate, n_regressors, oversample=1):
     """"""
 
-    regressor_labels = ['legendre_%d' % poly for poly in np.arange(1, self.n_regressors + 1)]
+    regressor_labels = ['legendre_{}'.format(int(poly)) for poly in np.arange(1, self.n_regressors + 1)]
     x = np.linspace(-1, 1, int(np.diff(interval)) * oversample + 1, endpoint=True)
     L_legendre = np.polynomial.legendre.legval(x=x, c=np.eye(n_regressors)).T
 
@@ -223,10 +223,9 @@ class Event(Regressor):
             self.interval = get_proper_interval(old_interval, self.sample_duration)
             self.interval_duration = self.interval[1] - self.interval[0]
 
-            warning = '\nWARNING: The duration of the interval %s is not a multiple of ' \
-                      'the sample duration %s.\n\r' \
-                      'Interval is now automatically set to %s.' \
-                       % (old_interval, self.sample_duration, self.interval)
+            warning = '\nWARNING: The duration of the interval {} is not a multiple of ' \
+                      'the sample duration {}.\n\r' \
+                      'Interval is now automatically set to {}.'.format(str(old_interval), str(self.sample_duration), str(self.interval))
 
             warnings.warn(warning)
 
@@ -249,8 +248,8 @@ class Event(Regressor):
                 length_interval = self.interval[1] - self.interval[0]
                 if self.n_regressors is None:
                     self.n_regressors = int(length_interval / self.sample_duration)
-                    warnings.warn('Number of FIR regressors has automatically been set to %d '
-                                  'per covariate' % self.n_regressors)
+                    warnings.warn('Number of FIR regressors has automatically been set to {} '
+                                  'per covariate'.format(int(self.n_regressors)))
 
                 if self.n_regressors  > (length_interval / self.sample_duration):
                     warnings.warn('Number of FIR regressors ({}) is larger than the number of timepoints in the interval '
@@ -405,7 +404,7 @@ class Event(Regressor):
                 regressor_labels = ['canonical_hrf', 'canonical_hrf_time_derivative']
 
         else:
-            regressor_labels = ['custom_basis_function_%d' % i for i in range(1, self.n_regressors+1)]        
+            regressor_labels = ['custom_basis_function_{}'.format(int(i)) for i in range(1, self.n_regressors+1)]        
             L = np.zeros((self.basis_set.shape[0] * oversample, self.n_regressors))
 
             interp = sp.interpolate.interp1d(self.basis_set.index, self.basis_set.values, axis=0)

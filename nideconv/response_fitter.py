@@ -119,7 +119,7 @@ class ResponseFitter(object):
 
         """
 
-        assert event_name not in self.X.columns.get_level_values(0), "The event_name %s is already in use" % event_name
+        assert event_name not in self.X.columns.get_level_values(0), "The event_name {} is already in use".format(str(event_name))
 
         ev = Event(name=event_name, 
                    onset_times=onset_times,
@@ -278,7 +278,7 @@ class ResponseFitter(object):
                                          id_vars='time')
 
         else:
-            prediction.columns = ['prediction for %s' % c for c in prediction.columns]
+            prediction.columns = ['prediction for {}'.format(str(c)) for c in prediction.columns]
 
         return prediction
 
@@ -549,4 +549,4 @@ def check_properties_response_fitters(response_fitters, attribute):
 
     attribute_values = [getattr(rf, attribute) for rf in response_fitters]
 
-    assert(all([v == attribute_values[0] for v in attribute_values])), "%s not equal across response fitters!" % attribute
+    assert(all([v == attribute_values[0] for v in attribute_values])), "{} not equal across response fitters!".format(str(attribute))
