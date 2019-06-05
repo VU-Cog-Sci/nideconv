@@ -478,7 +478,7 @@ class ResponseFitter(object):
                              aspect=3)
 
         fac.map(plt.plot, 'time', 'signal', color='k', label='signal')
-        fac.map(plt.plot, 'time', 'prediction', color='r', lw=3, label='prediction')
+        fac.map(plt.plot, 'time', 'prediction', color='r', ls='--', lw=3, label='prediction')
 
         if xlim is not None:
             for ax in fac.axes.ravel():
