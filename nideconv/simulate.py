@@ -12,6 +12,7 @@ def simulate_fmri_experiment(conditions=None,
                              n_trials=40, 
                              run_duration=300,
                              oversample=20,
+                             noise_level=1.0,
                              n_rois=1,
                              kernel='double_gamma',
                              kernel_pars={}):
@@ -101,7 +102,6 @@ def simulate_fmri_experiment(conditions=None,
                 if type(kernel_pars) is not dict:
                     kernel_pars = {}
 
-                print(kernel_pars)
                 signals[i] = convolve_with_function(signals[i],
                                                     parameters.loc[(subject, condition.name), 'kernel'],
                                                     sample_rate,
@@ -111,7 +111,7 @@ def simulate_fmri_experiment(conditions=None,
                 
             signal = signals.sum(0)
             signal = np.repeat(signal[:, np.newaxis], n_rois, 1)
-            signal += np.random.randn(*signal.shape)
+            signal += np.random.randn(*signal.shape) * noise_level
             
             if n_rois == 1:
                 columns = ['signal']
