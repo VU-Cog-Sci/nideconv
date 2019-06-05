@@ -13,7 +13,7 @@ def simulate_fmri_experiment(conditions=None,
                              run_duration=300,
                              oversample=20,
                              n_rois=1,
-                             kernel='double_hrf',
+                             kernel='double_gamma',
                              kernel_pars={}):
     """
     This function simulates an fMRI experiment. 
@@ -25,7 +25,7 @@ def simulate_fmri_experiment(conditions=None,
     The sd of the noise in the signal is always unity.
     """
 
-    if kernel != 'double_hrf':
+    if kernel not in ['double_gamma', 'gamma']:
         raise NotImplementedError()
     
     data = []
@@ -46,20 +46,26 @@ def simulate_fmri_experiment(conditions=None,
     all_onsets = []
     
     parameters = []
-    for subject in np.arange(1, n_subjects+1):    
+    for subject in np.arange(1, n_subjects+1):
         
         for i, condition in conditions.iterrows():
             amplitude = sp.stats.norm(loc=condition['mu_group'], scale=condition['std_group']).rvs()
-            parameters.append({'subject':subject,
-                               'trial_type':condition.name,
-                               'amplitude':amplitude})    
+            condition['amplitude'] = amplitude
+            condition['subject'] = subject
+            condition['trial_type'] = condition.name
+            parameters.append(condition.drop(['mu_group', 'std_group'], axis=0))
             
     parameters = pd.DataFrame(parameters).set_index(['subject', 'trial_type'])
+
+    if 'kernel' not in parameters.columns:
+        parameters['kernel'] = kernel
+    else:
+        parameters['kernel'].fillna(kernel, inplace=True)
 
     if type(n_trials) is int:
         n_trials = [n_trials] * len(conditions)
     
-    for subject in np.arange(1, n_subjects+1):    
+    for subject in np.arange(1, n_subjects+1):
         
         for run in range(1, n_runs+1):
             
@@ -80,17 +86,19 @@ def simulate_fmri_experiment(conditions=None,
                                               n_trials[i],
                                               replace=False)
 
-                signals[i, (onsets / TR).astype(int)] = parameters.loc[subject, condition.name]
+                signals[i, (onsets / TR).astype(int)] = parameters.loc[(subject, condition.name), 'amplitude']
                 
                 
                 all_onsets.append(pd.DataFrame({'onset':onsets}))
                 all_onsets[-1]['subject'] = subject
                 all_onsets[-1]['run'] = run
                 all_onsets[-1]['trial_type'] = condition.name
+                signals[i] = convolve_with_function(signals[i],
+                                                    parameters.loc[(subject, condition.name), 'kernel'],
+                                                    sample_rate)
                 
                 
             signal = signals.sum(0)
-            signal = convolve_with_function(signal, kernel, sample_rate, **kernel_pars)
             signal = np.repeat(signal[:, np.newaxis], n_rois, 1)
             signal += np.random.randn(*signal.shape)
             
