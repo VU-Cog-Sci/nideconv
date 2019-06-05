@@ -17,6 +17,7 @@ def plot_timecourses(tc,
                      col_order=None,
                      size=3,
                      legend=True,
+                     unit='subject',
                      *args,
                      **kwargs):
 
@@ -26,8 +27,6 @@ def plot_timecourses(tc,
 
     facs = []
 
-    multiple_plots = len(tc[plots].unique()) > 1
-
     for idx, plot_df in tc.groupby(plots):
         fac = sns.FacetGrid(plot_df,
                             col_wrap=col_wrap,
@@ -36,11 +35,12 @@ def plot_timecourses(tc,
                             sharex=sharex,
                             sharey=sharey,
                             aspect=aspect,
-                            col_order=col_order)
+                            col_order=col_order,
+                            size=size)
 
         fac.map_dataframe(sns.tsplot,
                           time='time',
-                          unit='subject',
+                          unit=unit,
                           condition=hue,
                           value='value',
                           color=sns.color_palette(),
@@ -52,7 +52,15 @@ def plot_timecourses(tc,
             fac.map(plt.axvline, x=0, c='k', ls='--')
 
         fac.fig.subplots_adjust(top=0.8)
-        fac.fig.suptitle(idx, fontsize=16)
+
+        if len(facs) > 1:
+            fac.fig.suptitle(idx, fontsize=16)
+
+        if len(fac.col_names) == 1:
+            fac.set_titles('')
+
+        if legend:
+            fac.add_legend()
 
 
         if len(fac.col_names) == 1:

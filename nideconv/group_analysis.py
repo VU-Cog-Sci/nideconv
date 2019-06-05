@@ -10,6 +10,10 @@ import logging
 
 class GroupResponseFitter(object):
 
+    """Can fit a group of individual subjects and/or
+    runs using a high-level interface.
+    """
+
     def __init__(self,
                  timeseries,
                  onsets,
@@ -41,6 +45,10 @@ class GroupResponseFitter(object):
             if field in self.timeseries.index.names:
                 self.timeseries.reset_index(field, inplace=True)
 
+            if confounds is not None:
+                if field in self.confounds.index.names:
+                    self.confounds.reset_index(field, inplace=True)
+
         if 'event' in self.onsets.index.names:
             self.onsets.reset_index('event', inplace=True)
 
@@ -61,10 +69,6 @@ class GroupResponseFitter(object):
             else:
                 self.onsets['trial_type'] = 'intercept'
 
-        self.timeseries['t'] = self.timeseries.groupby(self.index_columns).apply(_make_time_column, 
-                                                                                 input_sample_rate)
-
-
         index = pd.MultiIndex(names=self.index_columns,
                               levels=[[]]*len(self.index_columns),
                               codes=[[]]*len(self.index_columns),) 
@@ -74,13 +78,21 @@ class GroupResponseFitter(object):
             raise Exception('GroupDeconvolution is only to be used for datasets with multiple subjects'
                              'or runs')
         else:
-            self.timeseries = self.timeseries.set_index(self.index_columns + ['t'])
+            self.timeseries = self.timeseries.set_index(self.index_columns)
+            self.timeseries['t'] = _make_time_column(self.timeseries,
+                                                     self.index_columns,
+                                                     input_sample_rate)
+            self.timeseries.set_index('t', inplace=True, append=True)
+
             self.onsets = self.onsets.set_index(self.index_columns + ['trial_type'])
 
             if self.confounds is not None:
-                self.confounds['t'] = self.confounds.groupby(self.index_columns).apply(_make_time_column, 
-                                                                                       input_sample_rate)
-                self.confounds = self.confounds.set_index(self.index_columns + ['t'])
+                self.confounds = self.confounds.set_index(self.index_columns)
+                self.confounds['t'] = _make_time_column(self.confounds,
+                                                        self.index_columns,
+                                                        input_sample_rate)
+                
+                self.confounds = self.confounds.set_index('t', append=True)
 
             for idx, ts in self.timeseries.groupby(level=self.index_columns):
 
@@ -146,7 +158,7 @@ class GroupResponseFitter(object):
                     #print(e, self.onsets.loc[[col + (e,)], 'onset'].shape, durations.sha[p)
 
                     self.response_fitters[col].add_event(e,
-                                                       onset_times=self.onsets.loc[[col + (e,)], 'onset'],
+                                                       onsets=self.onsets.loc[[col + (e,)], 'onset'],
                                                        basis_set=basis_set,
                                                        interval=interval,
                                                        n_regressors=n_regressors,
@@ -181,8 +193,8 @@ class GroupResponseFitter(object):
                        alphas,
                        store_residuals)
 
-    def get_timecourses(self,
-                        oversample=None,
+    def get_timecourses(self, oversample=None,
+                        melt=False,
                         concatenate_runs=None):
 
         if oversample is None:
@@ -196,6 +208,12 @@ class GroupResponseFitter(object):
         index_names = tc_.index.names
         tc.index.set_names(index_names, level=range(len(index_names)), 
                            inplace=True)
+
+        if melt:
+            return tc.reset_index().melt(id_vars=tc.index.names,
+                                         var_name='roi')
+        else:
+            return tc
 
         return tc
 
@@ -311,6 +329,13 @@ class GroupResponseFitter(object):
             
             tc = tc[np.in1d(tc['event type'], event_types)]
 
+        if covariates is not None:
+
+            if type(covariates) is str:
+                covariates = [covariates]
+            
+            tc = tc[np.in1d(tc['covariate'], covariates)]
+
         return plot_timecourses(tc,
                                 plots=plots,
                                 col=col,
@@ -327,8 +352,71 @@ class GroupResponseFitter(object):
                                 **kwargs)
 
         
+    def plot_subject_timecourses(self,
+                                   event_types=None,
+                                   covariates=None,
+                                   plots='roi',
+                                   col='subject',
+                                   row=None,
+                                   col_wrap=4,
+                                   hue='event type',
+                                   max_n_plots=40,
+                                   oversample=None,
+                                   extra_axes=True,
+                                   sharex=True,
+                                   sharey=False,
+                                   aspect=1.5,
+                                   unit=None,
+                                   *args,
+                                   **kwargs):
+
+        tc = self.get_timecourses(oversample=oversample,
+                                  melt=True)
+
+        if event_types is not None:
+
+            if type(event_types) is str:
+                event_types = [event_types]
+            
+            tc = tc[np.in1d(tc['event type'], event_types)]
+
+        if covariates is not None:
+
+            if type(covariates) is str:
+                covariates = [covariates]
+            
+            tc = tc[np.in1d(tc['covariate'], covariates)]
+
+        if unit is None:
+            if 'run' in self.index_columns:
+                unit = 'run'
+            else:
+                unit = 'subject'
+
+        return plot_timecourses(tc,
+                                plots=plots,
+                                col=col,
+                                row=row,
+                                col_wrap=col_wrap,
+                                hue=hue,
+                                max_n_plots=max_n_plots,
+                                oversample=oversample,
+                                extra_axes=extra_axes,
+                                sharex=sharex,
+                                sharey=sharey,
+                                aspect=aspect,
+                                unit=unit,
+                                *args,
+                                **kwargs)
 
 
-def _make_time_column(d, sample_rate):
-    return pd.DataFrame(np.arange(0, len(d) * 1./sample_rate, 1./sample_rate), index=d.index)
 
+def _make_time_column(df, index_columns, sample_rate):
+    t = pd.Series(np.zeros(len(df)), index=df.index)
+
+    TR = 1./sample_rate
+
+    for ix, d in df.groupby(index_columns):
+        t.loc[ix] = np.arange(0, len(df.loc[ix]) * TR, TR)
+
+    return t

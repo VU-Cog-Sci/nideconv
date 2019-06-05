@@ -95,7 +95,7 @@ class ResponseFitter(object):
 
     def add_event(self,
                   event_name,
-                  onset_times=None, 
+                  onsets=None, 
                   basis_set='fir', 
                   interval=[0,10], 
                   n_regressors=None, 
@@ -103,12 +103,12 @@ class ResponseFitter(object):
                   covariates=None,
                   **kwargs):
         """
-        create design matrix for a given event type.
+        create design matrix for a given event_type.
 
         Parameters
         ----------
         event_name : string
-            Name of the event type, used as key to lookup this event type's
+            Name of the event_type, used as key to lookup this event_type's
             characteristics
 
         **kwargs : dict
@@ -121,8 +121,8 @@ class ResponseFitter(object):
 
         assert event_name not in self.X.columns.get_level_values(0), "The event_name %s is already in use" % event_name
 
-        ev = Event(name=event_name, 
-                   onset_times=onset_times,
+        ev = Event(name=event_name,
+                   onsets=onsets,
                    basis_set=basis_set,
                    interval=interval,
                    n_regressors=n_regressors,
@@ -242,7 +242,6 @@ class ResponseFitter(object):
         self.betas = pd.DataFrame(self.betas, 
                                   index=self.X.columns,
                                   columns=self.input_signal.columns)
-        #self.betas.index.set_names(['event_type','covariate', 'regressor'], inplace=True)
 
         for key in self.events:
             self.events[key].betas = self.betas.loc[[key]]
@@ -347,7 +346,6 @@ class ResponseFitter(object):
                                 oversample=oversample,
                                 legend=legend,
                                 *args, **kwargs)
-        
 
     def get_rsq(self):
         """
