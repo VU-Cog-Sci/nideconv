@@ -108,7 +108,7 @@ class GroupResponseFitter(object):
 
         if event is None:
             event = self.onsets.index.get_level_values('trial_type').unique()
-            logging.warn('No event type was given, automatically entering the following event types: %s' % event)
+            logging.warning('No event type was given, automatically entering the following event types: %s' % event.tolist())
 
         if type(event) is str:
             event = [event]
