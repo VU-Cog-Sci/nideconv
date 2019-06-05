@@ -31,7 +31,6 @@ def _create_fir_basis(interval, sample_rate, n_regressors, oversample=1):
 
     regressor_labels = ['fir_%d' % i for i in np.arange(n_regressors)]
 
-    total_length = interval[1] - interval[0]
     basis = np.eye(n_regressors)
     basis = np.vstack((basis, basis[-1]))
 
