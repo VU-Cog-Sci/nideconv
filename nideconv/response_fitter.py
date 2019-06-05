@@ -343,7 +343,10 @@ class ResponseFitter(object):
                                   oversample=oversample)
         tc['subject'] = 'dummy'
 
-        return plot_timecourses(tc, *args, **kwargs)
+        return plot_timecourses(tc,
+                                oversample=oversample,
+                                legend=legend,
+                                *args, **kwargs)
         
 
     def get_rsq(self):
