@@ -62,6 +62,9 @@ def simulate_fmri_experiment(conditions=None,
     else:
         parameters['kernel'].fillna(kernel, inplace=True)
 
+    if 'kernel_pars' not in parameters.columns:
+        parameters['kernel_pars'] = np.nan
+
     if type(n_trials) is int:
         n_trials = [n_trials] * len(conditions)
     
@@ -93,9 +96,17 @@ def simulate_fmri_experiment(conditions=None,
                 all_onsets[-1]['subject'] = subject
                 all_onsets[-1]['run'] = run
                 all_onsets[-1]['trial_type'] = condition.name
+
+                kernel_pars = parameters.loc[(subject, condition.name), 'kernel_pars']
+                if type(kernel_pars) is not dict:
+                    kernel_pars = {}
+
+                print(kernel_pars)
                 signals[i] = convolve_with_function(signals[i],
                                                     parameters.loc[(subject, condition.name), 'kernel'],
-                                                    sample_rate)
+                                                    sample_rate,
+                                                    **kernel_pars)
+
                 
                 
             signal = signals.sum(0)
