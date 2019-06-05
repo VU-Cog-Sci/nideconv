@@ -336,6 +336,9 @@ class ResponseFitter(object):
                          *args,
                          **kwargs):
 
+        if oversample is None:
+            oversample = 1
+
         tc = self.get_timecourses(melt=True,
                                   oversample=oversample)
         tc['subject'] = 'dummy'
