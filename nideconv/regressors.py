@@ -238,7 +238,7 @@ class Event(Regressor):
         else:
             self.covariates = pd.DataFrame(covariates)
 
-        if type(self.basis_set) not in [unicode,str]:
+        if type(self.basis_set) is not str:
             self.n_regressors = self.basis_set.shape[1]
             self.basis_set = pd.DataFrame(self.basis_set,
                                           index=np.linspace(*self.interval,
@@ -377,7 +377,7 @@ class Event(Regressor):
 
 
         # only for fir, the nr of regressors is dictated by the interval and sample rate
-        if type(self.basis_set) in [unicode,str]:
+        if type(self.basis_set) is str:
 
             if self.basis_set == 'fir':
                 L = _create_fir_basis(self.interval, self.sample_rate, self.n_regressors, oversample)
