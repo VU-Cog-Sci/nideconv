@@ -149,10 +149,10 @@ def simulate_fmri_experiment(conditions=None,
     data = []
 
     if conditions is None:
-        conditions = [{'name':'A',
+        conditions = [{'name':'Condition A',
                        'mu_group':1,
                        'std_group':0,},
-                       {'name':'B',
+                       {'name':'Condition B',
                        'mu_group':2,
                        'std_group':0}]
     
