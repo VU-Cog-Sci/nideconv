@@ -47,7 +47,7 @@ conditions = [{'name':'Condition A',
 data, onsets, pars = simulate.simulate_fmri_experiment(conditions,
                                                        TR=0.2,
                                                        run_duration=40,
-                                                       noise_level=.5,
+                                                       noise_level=.2,
                                                        n_rois=1)
 
 # Make ResponseFitter-object to fit these data
@@ -254,7 +254,7 @@ print(rf.get_time_to_peak())
 np.random.seed(666)
 
 # Simulate data
-TR = 0.55
+TR = 0.5
 sample_rate = 1./TR
 data, onsets, pars = simulate.simulate_fmri_experiment(noise_level=2.5,
                                                        TR=TR,
@@ -334,7 +334,7 @@ sample_rate = 1./TR
 data, onsets, pars = simulate.simulate_fmri_experiment(conditions,
                                                        TR=TR,
                                                        run_duration=50,
-                                                       noise_level=.5,
+                                                       noise_level=.1,
                                                        n_rois=1,
                                                        kernel_pars=kernel_pars)
 
