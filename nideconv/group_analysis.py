@@ -158,12 +158,12 @@ class GroupResponseFitter(object):
                     #print(e, self.onsets.loc[[col + (e,)], 'onset'].shape, durations.sha[p)
 
                     self.response_fitters[col].add_event(e,
-                                                       onsets=self.onsets.loc[[col + (e,)], 'onset'],
-                                                       basis_set=basis_set,
-                                                       interval=interval,
-                                                       n_regressors=n_regressors,
-                                                       durations=durations,
-                                                       covariates=covariate_matrix)
+                                                         onsets=self.onsets.loc[[col + (e,)], 'onset'],
+                                                         basis_set=basis_set,
+                                                         interval=interval,
+                                                         n_regressors=n_regressors,
+                                                         durations=durations,
+                                                         covariates=covariate_matrix)
 
 
     def fit(self,

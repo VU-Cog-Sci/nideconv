@@ -14,7 +14,6 @@ from .utils import (get_proper_interval,
                     double_gamma_with_d,
                     get_time_to_peak_from_timecourse,
                     double_gamma_with_d_time_derivative)
-
 def _get_timepoints(interval, 
                     sample_rate,
                     oversample):
