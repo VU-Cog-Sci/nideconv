@@ -6,4 +6,5 @@ scipy
 numpydoc
 sklearn
 nilearn
+ipython
 pybids
