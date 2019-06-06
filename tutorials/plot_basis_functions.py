@@ -39,7 +39,7 @@ sns.despine()
 from nideconv import simulate
 from nideconv import ResponseFitter
 
-conditions = [{'name':'A',
+conditions = [{'name':'stimulation',
               'mu_group':5,
               'std_group':1,
                'onsets':[0, 20]}]
@@ -54,8 +54,8 @@ data, onsets, pars = simulate.simulate_fmri_experiment(conditions,
 # Make ResponseFitter-object to fit these data
 rf = ResponseFitter(input_signal=data,
                     sample_rate=5) # Sample rate is inverse of TR (1/TR)
-rf.add_event('A',
-             onsets.loc['A'].onset,
+rf.add_event('stimulation',
+             onsets.loc['stimulation'].onset,
              interval=[0, 20],
              basis_set='canonical_hrf')
 
@@ -87,15 +87,15 @@ plt.gcf().set_size_inches(10, 4)
 # Simulate data again
 data, onsets, pars = simulate.simulate_fmri_experiment(conditions,
                                                        TR=0.2,
-                                                       run_duration=40,
+                                                       run_duration=50,
                                                        noise_level=.5,
                                                        n_rois=1,
                                                        kernel_pars=kernel_pars)
 
 rf = ResponseFitter(input_signal=data,
                     sample_rate=5)
-rf.add_event('A',
-             onsets.loc['A'].onset,
+rf.add_event('stimulation',
+             onsets.loc['stimulation'].onset,
              interval=[0, 20],
              basis_set='canonical_hrf')
 
@@ -172,8 +172,8 @@ plot_design_matrix(rf)
 # HRF with respect to time for dt=0.1. Then the design matrix looks like this
 rf = ResponseFitter(input_signal=data,
                     sample_rate=5)
-rf.add_event('A',
-             onsets.loc['A'].onset,
+rf.add_event('stimulation',
+             onsets.loc['stimulation'].onset,
              interval=[0, 20],
              basis_set='canonical_hrf_with_time_derivative') # note the more complex
                                                              # basis function set
@@ -206,8 +206,8 @@ plot_estimated_and_actual_tc(rf)
 
 rf = ResponseFitter(input_signal=data,
                     sample_rate=5)
-rf.add_event('A',
-             onsets.loc['A'].onset,
+rf.add_event('stimulation',
+             onsets.loc['stimulation'].onset,
              interval=[0, 20],
              basis_set='fir',
              n_regressors=20) # One regressor per second
@@ -253,17 +253,17 @@ data, onsets, pars = simulate.simulate_fmri_experiment(noise_level=2.5,
                                                        kernel_pars=kernel_pars)
 # cHRF model
 hrf_model = ResponseFitter(data, sample_rate)
-hrf_model.add_event('A', onsets.loc['A'].onset, interval=[0, 20], basis_set='canonical_hrf')
+hrf_model.add_event('stimulation', onsets.loc['stimulation'].onset, interval=[0, 20], basis_set='canonical_hrf')
 hrf_model.add_event('B', onsets.loc['B'].onset, interval=[0, 20], basis_set='canonical_hrf')
 
 # cHRF model with derivative wrt time-to-peak
 hrf_dt_model = ResponseFitter(data, sample_rate)
-hrf_dt_model.add_event('A', onsets.loc['A'].onset, interval=[0, 20], basis_set='canonical_hrf_with_time_derivative')
+hrf_dt_model.add_event('stimulation', onsets.loc['stimulation'].onset, interval=[0, 20], basis_set='canonical_hrf_with_time_derivative')
 hrf_dt_model.add_event('B', onsets.loc['B'].onset, interval=[0, 20], basis_set='canonical_hrf_with_time_derivative')
 
 # FIR_model
 fir_model = ResponseFitter(data, sample_rate)
-fir_model.add_event('A', onsets.loc['A'].onset, interval=[0, 20])
+fir_model.add_event('stimulation', onsets.loc['stimulation'].onset, interval=[0, 20])
 fir_model.add_event('B', onsets.loc['B'].onset, interval=[0, 20])
 
 ##############################################################################
@@ -304,7 +304,7 @@ plot_estimated_and_actual_tc(fir_model,
 # It consists of an intercept and sine-cosine pairs of increasing
 # frequency.
 
-conditions = [{'name':'A',
+conditions = [{'name':'stimulation',
               'mu_group':5,
               'std_group':1,
                'onsets':[0, 25]}]
@@ -320,8 +320,8 @@ data, onsets, pars = simulate.simulate_fmri_experiment(conditions,
                                                        kernel_pars=kernel_pars)
 
 fourier_model = ResponseFitter(data, sample_rate)
-fourier_model.add_event('A', 
-                        onsets.loc['A'].onset,
+fourier_model.add_event('stimulation', 
+                        onsets.loc['stimulation'].onset,
                         basis_set='fourier',
                         n_regressors=9,
                         interval=[0, 20])
