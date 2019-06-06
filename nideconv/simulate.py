@@ -215,14 +215,15 @@ def simulate_fmri_experiment(conditions=None,
                 all_onsets[-1]['run'] = run
                 all_onsets[-1]['trial_type'] = condition.name
 
-                kernel_pars = parameters.loc[(subject, condition.name), 'kernel_pars']
-                if type(kernel_pars) is not dict:
-                    kernel_pars = {}
+                if np.isnan(parameters.loc[(subject, condition.name), 'kernel_pars']):
+                    kernel_pars_ = kernel_pars
+                else:
+                    kernel_pars_ = parameters.loc[(subject, condition.name), 'kernel_pars']
 
                 signals[i] = convolve_with_function(signals[i],
                                                     parameters.loc[(subject, condition.name), 'kernel'],
                                                     sample_rate,
-                                                    **kernel_pars)
+                                                    **kernel_pars_)
 
                 
                 
