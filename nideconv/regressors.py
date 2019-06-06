@@ -216,7 +216,11 @@ class Event(Regressor):
         self.sample_rate = self.fitter.sample_rate
 
         # Check whether the interval is proper
-        if ~np.isclose(self.interval_duration % self.sample_duration, 0):
+        if ~np.isclose(self.interval_duration % self.sample_duration,
+                       0) and \
+                ~np.isclose(self.interval_duration% self.sample_duration,
+                            self.sample_duration):
+
             old_interval = self.interval
             self.interval = get_proper_interval(old_interval, self.sample_duration)
             self.interval_duration = self.interval[1] - self.interval[0]
