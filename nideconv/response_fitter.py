@@ -434,12 +434,14 @@ class ResponseFitter(object):
 
 
         return self.get_timecourses(oversample=oversample)\
-                   .groupby(['event type', 'covariate'], as_index=False)\
-                   .apply(get_time_to_peak_from_timecourse, 
+                   .groupby(['event type', 'covariate'])\
+                   .apply(get_time_to_peak_from_timecourse,
                           negative_peak=negative_peak,
                           cutoff=cutoff)\
-                   .reset_index(level=[ -1], drop=True)\
-                   .pivot_table(columns='area', index='peak')[cols]
+                   .droplevel(-1)\
+                   .reset_index()\
+                   .pivot_table(columns='area',
+                                index=['event type', 'covariate', 'peak'])[cols]
                    
     
     def get_original_signal(self, melt=False):
