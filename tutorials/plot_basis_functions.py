@@ -16,7 +16,6 @@ sns.set_style('white')
 sns.set_context('notebook')
 
 
-
 ##############################################################################
 # Well-specified model
 # --------------------
@@ -88,7 +87,7 @@ plt.gcf().set_size_inches(10, 4)
 data, onsets, pars = simulate.simulate_fmri_experiment(conditions,
                                                        TR=0.2,
                                                        run_duration=50,
-                                                       noise_level=.5,
+                                                       noise_level=.2,
                                                        n_rois=1,
                                                        kernel_pars=kernel_pars)
 
@@ -124,13 +123,16 @@ def plot_estimated_and_actual_tc(rf,
              ls='--',
              c='k')
 
-    legend_strings = list(rf.events.keys()) + ['Actual even-related response']
-    plt.legend(legend_strings)
+    plt.legend()
     plt.suptitle('Estimated event-related response')
     plt.tight_layout()
 
 
 plot_estimated_and_actual_tc(rf)
+
+##############################################################################
+#  The estimated time-to-peak is completely off
+print(rf.get_time_to_peak())
 
 ##############################################################################
 # Clearly, the model now does not fit very well. This is because the design 
@@ -190,14 +192,19 @@ rf.plot_model_fit()
 # 
 plot_estimated_and_actual_tc(rf)
 
+##############################################################################
+#  The estimated time-to-peak is more in the range of what it should be
+print(rf.get_time_to_peak())
 
 
 ##############################################################################
 # Even more complex basis functions
 # ---------------------------------
-# Note that the model still does not fit perfectly: the Measured signal is 
+# Note that the canonical HRF model-with-derivative
+# still does not fit perfectly: the Measured signal is 
 # still peaking earlier in time than the model. And the model still assumes 
-# as post-peak dip that is not there in the data.
+# as post-peak dip that is not there in the data. Therefore, it also underestimates
+# the height of the first peak.
 #
 # One solution is to use yet more complex basis functions, such as the 
 # Finite Impulse Response functions we used in the previous tutorial. This 
@@ -224,6 +231,9 @@ rf.plot_model_fit()
 # Clearly, this model is much more flexible, and, hence, it fits better:
 plot_estimated_and_actual_tc(rf)
 
+##############################################################################
+# Also, the estimated time-to-peak is more in the range of where it should be
+print(rf.get_time_to_peak())
 
 ##############################################################################
 # No Free Lunch (Bias-Variance tradeoff)
@@ -273,6 +283,9 @@ hrf_model.fit()
 plot_estimated_and_actual_tc(hrf_model,
                              amplitudes=pars.amplitude.tolist())
 
+##############################################################################
+# 
+print(hrf_model.get_time_to_peak())
 
 ##############################################################################
 # Extend model (cHRF + deriative wrt time)
@@ -282,12 +295,18 @@ plot_estimated_and_actual_tc(hrf_dt_model,
                              amplitudes=pars.amplitude.tolist())
 
 ##############################################################################
+# 
+print(hrf_dt_model.get_time_to_peak())
+##############################################################################
 # Most complex model (FIR)
 # ~~~~~~~~~~~~~~~~~~~~~~~~
 fir_model.fit()
 plot_estimated_and_actual_tc(fir_model,
                              amplitudes=pars.amplitude.tolist())
 
+##############################################################################
+# 
+print(fir_model.get_time_to_peak())
 ##############################################################################
 # The price of complexity
 # -----------------------
@@ -333,6 +352,9 @@ fourier_model.fit()
 plot_estimated_and_actual_tc(fourier_model,
                              amplitudes=pars.amplitude.tolist())
 
+##############################################################################
+# 
+print(rf.get_time_to_peak())
 
 ##############################################################################
 # Smoothness constraint
