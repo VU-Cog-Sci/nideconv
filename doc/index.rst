@@ -26,7 +26,6 @@ and the Spinoza Centre for Neuroimaging by Gilles de Hollander and Tomas Knapen.
 
    tutorials/plot_what_is_deconvolution
    tutorials/plot_basis_functions
-   tutorials/plot_basis_functions2   
    tutorials/plot_group_analysis
    tutorials/plot_bayesian_analysis
 
