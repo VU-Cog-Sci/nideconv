@@ -61,7 +61,7 @@ master_doc = 'index'
 # General information about the project.
 project = 'nideconv'
 copyright = '2017, Gilles de Hollander & Tomas Knapen'
-author = 'Gilles de Hollander'
+author = 'Gilles de Hollander & Tomas Knapen'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -178,7 +178,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     (master_doc, 'nideconv.tex', 'nideconv Documentation',
-     'Tomas Knapen', 'manual'),
+     'Gilles de Hollander & Tomas Knapen', 'manual'),
 ]
 
 
