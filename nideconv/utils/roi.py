@@ -269,6 +269,7 @@ def _make_psc(data):
     return image.math_img('data / denom[..., np.newaxis] * 100 - 100',
                           data=data, denom=denom)
 
+
 def _get_func_and_confounds(fmriprep_folder,
                             sourcedata_folder):
 
