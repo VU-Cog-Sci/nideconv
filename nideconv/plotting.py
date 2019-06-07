@@ -27,6 +27,8 @@ def plot_timecourses(tc,
 
     facs = []
 
+    n_plots = len(tc[plots].unique())
+
     for idx, plot_df in tc.groupby(plots):
         fac = sns.FacetGrid(plot_df,
                             col_wrap=col_wrap,
@@ -52,7 +54,7 @@ def plot_timecourses(tc,
 
         fac.fig.subplots_adjust(top=0.8)
 
-        if len(facs) > 1:
+        if n_plots > 1:
             fac.fig.suptitle(idx, fontsize=16)
 
         if len(fac.col_names) == 1:
