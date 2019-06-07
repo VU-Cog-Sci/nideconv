@@ -9,4 +9,3 @@ nilearn
 ipython
 pybids
 pystan
-pymc3

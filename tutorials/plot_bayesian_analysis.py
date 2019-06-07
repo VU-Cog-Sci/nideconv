@@ -25,7 +25,7 @@ conditions = [{'name':'Correct', 'mu_group':.25, 'std_group':.1, 'n_trials':16},
               {'name':'Error', 'mu_group':.5, 'std_group':.1, 'n_trials':(1,6)}]
 
 data, onsets, pars = simulate.simulate_fmri_experiment(conditions,
-                                                       n_subjects=9,
+                                                       n_subjects=2,
                                                        n_runs=1,
                                                        TR=1.5)
 
@@ -83,6 +83,7 @@ model.sample()
 # Plot the individual subject time courses and their Bayesian credible interval
 # (CI)
 fac = model.plot_subject_timecourses(col_wrap=3, legend=False)
+
 
 # plot ground truth
 for subject, ax in enumerate(fac.axes.ravel()):
