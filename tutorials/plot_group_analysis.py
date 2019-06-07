@@ -3,11 +3,9 @@ Deconvolution on group of subjects
 ==================================
 
 The `GroupResponseFitter`-object of `Nideconv` offers an easy way to fit the data of many subjects together
+well-specified model
+`nideconv.simulate` can simulate data from multiple subjects.
 """
-##############################################################################
-# well-specified model
-# --------------------
-# `nideconv.simulate` can simulate data from multiple subjects.
 
 from nideconv import simulate
 
@@ -63,7 +61,8 @@ g_model = GroupResponseFitter(data,
 # We choose here to use the `Fourier`-basis set, with 9 regressors.
 g_model.add_event('Condition A',
                   basis_set='fourier',
-                  n_regressors=9)
+                  n_regressors=9,
+                  interval=[0, 20])
 
 g_model.add_event('Condition B',
                   basis_set='fourier',
