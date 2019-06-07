@@ -90,3 +90,8 @@ for subject, ax in enumerate(fac.axes.ravel()):
     subject += 1 
     ax.plot(t, hrf*pars.loc[subject, 'Correct'].amplitude, ls='--', lw=1.5, color=sns.color_palette()[0])
     ax.plot(t, hrf*pars.loc[subject, 'Error'].amplitude, ls='--', lw=1.5, color=sns.color_palette()[1])
+
+##############################################################################
+# The Hierarchical Bayesian model performs better in estimating individuals HRFs
+# because it # is regularized: it shrinks the estimates for subjects with little 
+# errors towards the group mean.
