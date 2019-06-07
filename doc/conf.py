@@ -202,3 +202,8 @@ texinfo_documents = [
      author, 'nideconv', 'One line description of project.',
      'Miscellaneous'),
 ]
+
+import mock
+MOCK_MODULES = ['theano', 'theano.tensor']
+for mod_name in MOCK_MODULES:
+    sys.modules[mod_name] = mock.Mock()
