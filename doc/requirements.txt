@@ -8,3 +8,4 @@ sklearn
 nilearn
 ipython
 pybids
+pystan
