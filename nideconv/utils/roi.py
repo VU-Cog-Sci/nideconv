@@ -273,12 +273,12 @@ def _make_psc(data):
 def _get_func_and_confounds(fmriprep_folder,
                             sourcedata_folder):
 
-    from bids.grabbids import BIDSLayout
+    from bids import BIDSLayout
     fmriprep_layout = BIDSLayout(fmriprep_folder)
     sourcedata_layout = BIDSLayout(sourcedata_folder)
 
     files = fmriprep_layout.get(extensions=['.nii', 'nii.gz'],
-                                modality='func', type='preproc')
+                                modality='func', suffix='preproc')
 
     confounds = []
     metadata = []
@@ -290,7 +290,7 @@ def _get_func_and_confounds(fmriprep_folder,
             if hasattr(f, key):
                 kwargs[key] = getattr(f, key)
 
-        c = fmriprep_layout.get(type='confounds', **kwargs)
+        c = fmriprep_layout.get(suffix='confounds', **kwargs)
         c = c[0]
         confounds.append(c)
 
