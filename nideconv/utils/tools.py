@@ -79,23 +79,29 @@ def double_gamma_with_d_time_derivative(x,
     return dhrf
 
 
-def get_time_to_peak_from_timecourse(tc, cutoff=1., negative_peak=False):
-    results = []
+def _get_peaks(col, cutoff=1.0):
     
-    for c in tc:
-        
-        tc_ = tc[c] * -1 if negative_peak else tc[c]
-        
-        peaks, _ = signal.find_peaks(tc_)
-        
-        r = pd.DataFrame([{'time to peak':p} for p in peaks])
-        r['prominence'], _, _ = signal.peak_prominences(tc_, peaks)
-        r['time to peak'] = tc.index.get_level_values('time')[peaks]
-        r['area'] = c
-        
-        r = r[r.prominence >= cutoff * r.prominence.max()].sort_values('prominence', ascending=False)
-        r['peak'] = r['time to peak'].rank().astype(int)
-        
-        results.append(r)
-        
-    return pd.concat(results, ignore_index=True)
+    peaks, _ = signal.find_peaks(col)
+    prominence, _, _ = signal.peak_prominences(col, peaks)
+    
+    r = pd.DataFrame({'prominence':prominence,
+                      'time peak':col.index.get_level_values(level='time')[peaks]},
+                       index=[col.name]*len(peaks))
+    
+    r = r[r.prominence >= cutoff * r.prominence.max()].sort_values('prominence', ascending=False)
+    if len(r) == 0:
+        return pd.DataFrame({'prominence':[np.nan],
+                             'time peak':[np.nan]},
+                            index=[col.name])
+
+    return r
+
+
+def get_time_to_peak_from_timecourse(tc, cutoff=1., negative_peak=False):
+
+    if tc.ndim == 1:
+        return _get_peaks(tc).T
+
+    else:
+        peaks = tc.T.apply(_get_peaks, axis=1)
+        return pd.concat(peaks.tolist()).T

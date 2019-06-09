@@ -4,6 +4,7 @@ from nilearn import input_data, image
 import pandas as pd
 import numpy as np
 import logging
+from .utils import get_time_to_peak_from_timecourse
 
 
 class NiftiResponseFitter(ResponseFitter):
@@ -21,6 +22,9 @@ class NiftiResponseFitter(ResponseFitter):
                  **kwargs):
 
 
+        if isinstance(confounds_for_extraction, pd.DataFrame):
+            confounds_for_extraction = confounds_for_extraction.values
+
         self.confounds = confounds_for_extraction
 
         if isinstance(mask, input_data.NiftiMasker):
@@ -37,7 +41,9 @@ class NiftiResponseFitter(ResponseFitter):
                                                  standardize=standardize,
                                                  memory=memory)
 
-        input_signal = self.masker.fit_transform(func_img) 
+
+        input_signal = self.masker.fit_transform(func_img,
+                                                 confounds=confounds_for_extraction)
         self.n_voxels = input_signal.shape[1]
 
         super(NiftiResponseFitter, self).__init__(input_signal=input_signal,
@@ -59,6 +65,7 @@ class NiftiResponseFitter(ResponseFitter):
     def get_timecourses(self, 
                         oversample=None,
                         average_over_mask=False,
+                        transform_to_niftis=True,
                         **kwargs
                         ):
 
@@ -68,30 +75,32 @@ class NiftiResponseFitter(ResponseFitter):
         timecourses = super(NiftiResponseFitter, self).get_timecourses(oversample=oversample,
                                                                        melt=False,
                                                                        **kwargs)
+        if transform_to_niftis:
+            if average_over_mask:
+                
+                average_over_mask = load_niimg(average_over_mask)
 
-        if average_over_mask:
-            
-            average_over_mask = load_niimg(average_over_mask)
+                weights = image.math_img('mask / mask.sum()', 
+                                         mask=average_over_mask)
 
-            weights = image.math_img('mask / mask.sum()', 
-                                     mask=average_over_mask)
+                weights = self.masker.fit_transform(weights)
 
-            weights = self.masker.fit_transform(weights)
+                timecourses = timecourses.dot(weights.T) 
+                return timecourses.sum(1)
 
-            timecourses = timecourses.dot(weights.T) 
-            return timecourses.sum(1)
+            else:
+                tc_df = []
+                for (event_type, covariate, time), tc in timecourses.groupby(level=['event type', 'covariate', 'time']):
+                    #timepoints = tc.index.get_level_values('time')
+                    tc_nii = self._inverse_transform(tc)
+                    tc = pd.DataFrame([tc_nii], index=pd.MultiIndex.from_tuples([(event_type, covariate, time)],
+                                                                             names=['event type', 'covariate', 'time']),
+                                      columns=['nii'])
+                    tc_df.append(tc)
 
+                return pd.concat(tc_df)
         else:
-            tc_df = []
-            for (event_type, covariate, time), tc in timecourses.groupby(level=['event type', 'covariate', 'time']):
-                #timepoints = tc.index.get_level_values('time')
-                tc_nii = self._inverse_transform(tc)
-                tc = pd.DataFrame([tc_nii], index=pd.MultiIndex.from_tuples([(event_type, covariate, time)],
-                                                                         names=['event type', 'covariate', 'time']),
-                                  columns=['nii'])
-                tc_df.append(tc)
-
-            return pd.concat(tc_df)
+            return timecourses
 
                                        
 
@@ -100,6 +109,44 @@ class NiftiResponseFitter(ResponseFitter):
                            data):
 
         return self.masker.inverse_transform(data)
+
+    def get_residuals(self):
+        residuals = image.math_img('data - prediction',
+                                   data=self._inverse_transform(self.input_signal),
+                                   prediction=self.predict_from_design_matrix())
+
+        return residuals
+
+    def get_rsq(self):
+        """
+        calculate the rsq of a given fit. 
+        calls predict_from_design_matrix to predict the signal that has been fit
+        """
+
+        return self._inverse_transform(super().get_rsq())
+
+    def get_time_to_peak(self,
+                         oversample=None,
+                         negative_peak=False,
+                         include_prominence=False):
+
+        
+        if oversample is None:
+            oversample = self.oversample_design_matrix
+
+        if include_prominence:
+            ix = ['time peak', 'prominence']
+        else:
+            ix = ['time peak']
+
+        peaks = self.get_timecourses(oversample=oversample,
+                                    transform_to_niftis=False)\
+                   .groupby(['event type', 'covariate'])\
+                   .apply(get_time_to_peak_from_timecourse,
+                          negative_peak=negative_peak)
+        
+        return peaks.apply(lambda d: self._inverse_transform(d), 1)\
+            .to_frame('nii').loc[(slice(None), slice(None), ix), :]
 
 
 class GroupNiftiResponseFitter(object):
@@ -279,3 +326,29 @@ class GroupNiftiResponseFitter(object):
 
         return timecourses
 
+    def get_time_to_peak(self,
+                         oversample=None, 
+                         cutoff=1.0, 
+                         negative_peak=False,
+                         include_prominence=False):
+
+        if oversample is None:
+            oversample = self.oversample_design_matrix
+
+        if include_prominence:
+            ix = ['time peak', 'prominence']
+        else:
+            ix = ['time peak']
+
+
+        peaks = self.get_timecourses(oversample=oversample,
+                                    transform_to_niftis=False)\
+                   .groupby(['event type', 'covariate'])\
+                   .apply(get_time_to_peak_from_timecourse,
+                          negative_peak=negative_peak,
+                          cutoff=cutoff)\
+            .loc[(slice(None), slice(None), ix), :]
+        
+        return peaks.groupby(['event type', 'covariate']) \
+            .apply(lambda d: self._inverse_transform(d), 1)\
+            .to_frame('nii')

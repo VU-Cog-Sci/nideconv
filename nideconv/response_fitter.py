@@ -357,7 +357,11 @@ class ResponseFitter(object):
         assert hasattr(self, 'betas'), \
                         'no betas found, please run regression before rsq'
 
-        return 1 - (self.ssquares / ((self.input_signal - self.input_signal.mean())**2).sum())
+        rsq = 1 - (self.ssquares /
+                   ((self.input_signal.values - self.input_signal.mean().values)**2).sum(0))
+                  
+
+        return pd.DataFrame(rsq[np.newaxis, :], columns=self.input_signal.columns)
 
 
     def get_residuals(self):
@@ -418,7 +422,7 @@ class ResponseFitter(object):
         return epochs
 
 
-    def get_time_to_peak(self, 
+    def get_time_to_peak(self,
                          oversample=None, 
                          cutoff=1.0, 
                          negative_peak=False,
@@ -428,9 +432,9 @@ class ResponseFitter(object):
             oversample = self.oversample_design_matrix
 
         if include_prominence:
-            cols = ['time to peak', 'prominence']
+            ix = ['time peak', 'prominence']
         else:
-            cols = ['time to peak']
+            ix = ['time peak']
 
 
         return self.get_timecourses(oversample=oversample)\
@@ -438,10 +442,7 @@ class ResponseFitter(object):
                    .apply(get_time_to_peak_from_timecourse,
                           negative_peak=negative_peak,
                           cutoff=cutoff)\
-                   .droplevel(-1)\
-                   .reset_index()\
-                   .pivot_table(columns='area',
-                                index=['event type', 'covariate', 'peak'])[cols]
+            .loc[(slice(None), slice(None), ix), :]
                    
     
     def get_original_signal(self, melt=False):
