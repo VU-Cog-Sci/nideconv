@@ -409,6 +409,25 @@ class GroupResponseFitter(object):
                                 *args,
                                 **kwargs)
 
+    def get_rsq(self):
+        rsq = pd.concat(self.response_fitters.apply(lambda d: d.get_rsq()).tolist())
+        rsq.index = self.response_fitters.index
+
+        return rsq
+
+    def get_time_to_peak(self,
+                         oversample=1.0,
+                         cutoff=1.0, 
+                         negative_peak=False,
+                         include_prominence=False):
+        ttp = pd.concat(self.response_fitters.apply(lambda d: d.get_time_to_peak(oversample=oversample,
+                                                                                 cutoff=cutoff,
+                                                                                 negative_peak=negative_peak,
+                                                                                 include_prominence=include_prominence)).tolist())
+        ttp.index = self.response_fitters.index
+
+        return ttp
+
 
 
 def _make_time_column(df, index_columns, sample_rate):
