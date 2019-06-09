@@ -63,11 +63,11 @@ class GroupResponseFitter(object):
             if c in self.timeseries.columns:
                 self.index_columns.append(c)
 
-        if 'trial_type' not in self.onsets:
+        if 'event_type' not in self.onsets:
             if 'condition' in self.onsets:
-                self.onsets['trial_type'] = self.onsets['condition']
+                self.onsets['event_type'] = self.onsets['condition']
             else:
-                self.onsets['trial_type'] = 'intercept'
+                self.onsets['event_type'] = 'intercept'
 
         index = pd.MultiIndex(names=self.index_columns,
                               levels=[[]]*len(self.index_columns),
@@ -84,7 +84,7 @@ class GroupResponseFitter(object):
                                                      input_sample_rate)
             self.timeseries.set_index('t', inplace=True, append=True)
 
-            self.onsets = self.onsets.set_index(self.index_columns + ['trial_type'])
+            self.onsets = self.onsets.set_index(self.index_columns + ['event_type'])
 
             if self.confounds is not None:
                 self.confounds = self.confounds.set_index(self.index_columns)
@@ -119,7 +119,7 @@ class GroupResponseFitter(object):
                  **kwargs):
 
         if event is None:
-            event = self.onsets.index.get_level_values('trial_type').unique()
+            event = self.onsets.index.get_level_values('event_type').unique()
             logging.warning('No event type was given, automatically entering the following event types: %s' % event.tolist())
 
         if type(event) is str:
