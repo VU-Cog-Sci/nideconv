@@ -14,6 +14,8 @@ from .utils import (get_proper_interval,
                     double_gamma_with_d,
                     get_time_to_peak_from_timecourse,
                     double_gamma_with_d_time_derivative)
+import logging
+
 def _get_timepoints(interval, 
                     sample_rate,
                     oversample):
@@ -208,8 +210,19 @@ class Event(Regressor):
         self.basis_set = basis_set
         self.interval = interval
         self.n_regressors = n_regressors
-        self.onsets = onsets
+        self.onsets = pd.Series(onsets)
+
+        if self.onsets.dtype != float:
+            logging.warning('Onsets should be floats (currently {})! Converting...'.format(self.onsets.dtype))
+            self.onsets = self.onsets.astype(float)
+
         self.durations = durations
+
+        if durations is not None:
+            self.durations = pd.Series(self.durations)
+            if self.durations.dtype != float:
+                logging.warning('Durations should be floats (currently {})! Converting...'.format(self.durations.dtype))
+                self.durations = self.durations.astype(float)
 
         self.interval_duration = self.interval[1] - self.interval[0]
         self.sample_duration = self.fitter.sample_duration
