@@ -7,9 +7,9 @@ from .utils import convolve_with_function
 
 def simulate_fmri_experiment(conditions=None,
                              TR=1.,
-                             n_subjects=1, 
-                             n_runs=1, 
-                             n_trials=40, 
+                             n_subjects=1,
+                             n_runs=1,
+                             n_trials=40,
                              run_duration=300,
                              oversample=20,
                              noise_level=1.0,
@@ -18,7 +18,7 @@ def simulate_fmri_experiment(conditions=None,
                              kernel_pars={}):
     """
     Simulates an fMRI experiment and returns a pandas
-    DataFrame with the resulting time series in an analysis-ready format. 
+    DataFrame with the resulting time series in an analysis-ready format.
 
     By default a single run of a single subject is simulated, but a
     larger number of subjects, runs, and ROIs can also be simulated.
@@ -26,7 +26,7 @@ def simulate_fmri_experiment(conditions=None,
     Parameters
     ----------
     conditions : list of dictionaries or *None*
-        Can be used to customize different conditions. 
+        Can be used to customize different conditions.
         Every conditions is represented as a dictionary in
         this list and has the following form:
 
@@ -60,7 +60,7 @@ def simulate_fmri_experiment(conditions=None,
 
     n_subjects : int
         Number of subjects.
-    
+
     n_runs : int
         Number of runs *per subject*.
 
@@ -78,14 +78,14 @@ def simulate_fmri_experiment(conditions=None,
     n_rois : int
         Number of regions-of-interest. Determines the number
         of columns of *data*.
-       
+
 
     Other Parameters
     ----------------
     oversample : int
         Determines how many times the kernel is oversampled before
         convolution. Should usually not be changed.
-    kernel : str 
+    kernel : str
         Sets which kernel to use for response function. Currently
         only '`double_hrf`' can be used.
 
@@ -101,7 +101,7 @@ def simulate_fmri_experiment(conditions=None,
         as index.
     parameters : DataFrame
         Contains parameters (amplitude) of the different event type.
-        
+
 
     Examples
     --------
@@ -112,7 +112,7 @@ def simulate_fmri_experiment(conditions=None,
     >>> data, onsets, params = simulate_fmri_experiment()
     >>> print(data.head())
                         area 1
-    subj_idx run t            
+    subj_idx run t
     1        1   0.0 -1.280023
                  1.0  0.908086
                  2.0  0.850847
@@ -131,7 +131,7 @@ def simulate_fmri_experiment(conditions=None,
     subj_idx trial_type
     1        A                 1.0
              B                 2.0
-    
+
 
     With n_subjects we can increase the number of subjects
 
@@ -145,34 +145,36 @@ def simulate_fmri_experiment(conditions=None,
 
     if kernel not in ['double_gamma', 'gamma']:
         raise NotImplementedError()
-    
+
     data = []
 
     if conditions is None:
-        conditions = [{'name':'Condition A',
-                       'mu_group':1,
-                       'std_group':0,},
-                       {'name':'Condition B',
-                       'mu_group':2,
-                       'std_group':0}]
-    
+        conditions = [{'name': 'Condition A',
+                       'mu_group': 1,
+                       'std_group': 0, },
+                      {'name': 'Condition B',
+                       'mu_group': 2,
+                       'std_group': 0}]
+
     conditions = pd.DataFrame(conditions).set_index('name')
-    
+
     sample_rate = 1./TR
-    
+
     frametimes = np.arange(0, run_duration, TR)
     all_onsets = []
-    
+
     parameters = []
     for subject in np.arange(1, n_subjects+1):
-        
+
         for i, condition in conditions.iterrows():
-            amplitude = sp.stats.norm(loc=condition['mu_group'], scale=condition['std_group']).rvs()
+            amplitude = sp.stats.norm(
+                loc=condition['mu_group'], scale=condition['std_group']).rvs()
             condition['amplitude'] = amplitude
             condition['subject'] = subject
             condition['trial_type'] = condition.name
-            parameters.append(condition.drop(['mu_group', 'std_group'], axis=0))
-            
+            parameters.append(condition.drop(
+                ['mu_group', 'std_group'], axis=0))
+
     parameters = pd.DataFrame(parameters).set_index(['subject', 'trial_type'])
 
     if 'kernel' not in parameters.columns:
@@ -185,11 +187,11 @@ def simulate_fmri_experiment(conditions=None,
 
     if type(n_trials) is int:
         n_trials = [n_trials] * len(conditions)
-    
+
     for subject in np.arange(1, n_subjects+1):
-        
+
         for run in range(1, n_runs+1):
-            
+
             signals = np.zeros((len(conditions), len(frametimes)))
 
             for i, (_, condition) in enumerate(conditions.iterrows()):
@@ -199,18 +201,19 @@ def simulate_fmri_experiment(conditions=None,
                     onsets = np.ones(0)
 
                     while len(onsets) < n_trials[i]:
-                        isis = np.random.gamma(run_duration / n_trials[i], 1, size=n_trials[i] * 10)
+                        isis = np.random.gamma(
+                            run_duration / n_trials[i], 1, size=n_trials[i] * 10)
                         onsets = np.cumsum(isis)
                         onsets = onsets[onsets < run_duration]
 
-                    onsets = np.random.choice(onsets, 
+                    onsets = np.random.choice(onsets,
                                               n_trials[i],
                                               replace=False)
 
-                signals[i, (onsets / TR).astype(int)] = parameters.loc[(subject, condition.name), 'amplitude']
-                
-                
-                all_onsets.append(pd.DataFrame({'onset':onsets}))
+                signals[i, (onsets / TR).astype(int)
+                        ] = parameters.loc[(subject, condition.name), 'amplitude']
+
+                all_onsets.append(pd.DataFrame({'onset': onsets}))
                 all_onsets[-1]['subject'] = subject
                 all_onsets[-1]['run'] = run
                 all_onsets[-1]['trial_type'] = condition.name
@@ -218,19 +221,19 @@ def simulate_fmri_experiment(conditions=None,
                 if np.isnan(parameters.loc[(subject, condition.name), 'kernel_pars']):
                     kernel_pars_ = kernel_pars
                 else:
-                    kernel_pars_ = parameters.loc[(subject, condition.name), 'kernel_pars']
+                    kernel_pars_ = parameters.loc[(
+                        subject, condition.name), 'kernel_pars']
 
                 signals[i] = convolve_with_function(signals[i],
-                                                    parameters.loc[(subject, condition.name), 'kernel'],
+                                                    parameters.loc[(
+                                                        subject, condition.name), 'kernel'],
                                                     sample_rate,
                                                     **kernel_pars_)
 
-                
-                
             signal = signals.sum(0)
             signal = np.repeat(signal[:, np.newaxis], n_rois, 1)
             signal += np.random.randn(*signal.shape) * noise_level
-            
+
             if n_rois == 1:
                 columns = ['signal']
             else:
@@ -241,12 +244,12 @@ def simulate_fmri_experiment(conditions=None,
 
             tmp['t'] = frametimes
             tmp['subject'], tmp['run'] = subject, run
-                
+
             data.append(tmp)
-            
+
     data = pd.concat(data).set_index(['subject', 'run', 't'])
     onsets = pd.concat(all_onsets).set_index(['subject', 'run', 'trial_type'])
-    
+
     if n_subjects == 1:
         data.index = data.index.droplevel('subject')
         onsets.index = onsets.index.droplevel('subject')
@@ -255,6 +258,4 @@ def simulate_fmri_experiment(conditions=None,
         data.index = data.index.droplevel('run')
         onsets.index = onsets.index.droplevel('run')
 
-    
     return data, onsets, parameters
-

@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 
+
 def make_indices(dimensions):
     # Generates complete set of indices for given dimensions
     level = len(dimensions)
@@ -17,6 +18,7 @@ def make_indices(dimensions):
         return [tuple(i) for i in indices]
     except TypeError:
         return indices
+
 
 def calc_min_interval(x, alpha):
     """Internal method to determine the minimum interval of
@@ -37,6 +39,7 @@ def calc_min_interval(x, alpha):
     hdi_min = x[min_idx]
     hdi_max = x[min_idx + interval_idx_inc]
     return hdi_min, hdi_max
+
 
 def get_hpd_(x, alpha=0.05, transform=lambda x: x):
     """Calculate highest posterior density (HPD) of array for given alpha. The HPD is the
@@ -86,28 +89,33 @@ def get_hpd_(x, alpha=0.05, transform=lambda x: x):
 
         return np.array(calc_min_interval(sx, alpha))
 
+
 def get_hpd(timecourse_traces, melted=None, alpha=0.05, ):
-    
+
     if melted is None:
         melted = timecourse_traces.columns.names[-1] != 't'
-    
+
     if melted:
-        extra_columns = [c for c in timecourse_traces.columns if c not in ['sample', 't', 'value']]
-        assert((timecourse_traces.groupby(extra_columns + ['sample', 't', 'value']).size() == 1).all())
-        timecourse_traces = timecourse_traces.pivot_table(index='sample', 
-                                                        columns=extra_columns + ['t'], 
-                                                        values='value')
+        extra_columns = [c for c in timecourse_traces.columns if c not in [
+            'sample', 't', 'value']]
+        assert((timecourse_traces.groupby(extra_columns +
+                                          ['sample', 't', 'value']).size() == 1).all())
+        timecourse_traces = timecourse_traces.pivot_table(index='sample',
+                                                          columns=extra_columns +
+                                                          ['t'],
+                                                          values='value')
 
     hpd = get_hpd_(timecourse_traces.values, alpha=alpha)
     hpd = pd.DataFrame(hpd, columns=[alpha, 1-alpha],
                        index=timecourse_traces.columns)
     return hpd
 
+
 def do_ols(matrix):
-    
+
     betas, ssquares, rank, _ = \
-                                np.linalg.lstsq(matrix.iloc[:, 1:], 
-                                                matrix.iloc[:, :1], 
-                                                rcond=None)
-    
+        np.linalg.lstsq(matrix.iloc[:, 1:],
+                        matrix.iloc[:, :1],
+                        rcond=None)
+
     return pd.DataFrame(betas, index=matrix.columns[1:], columns=['beta'])
