@@ -120,7 +120,7 @@ def simulate_fmri_experiment(conditions=None,
                  4.0 -0.299650
     >>> print(data.onsets)
                                   onset
-    subj_idx run trial_type
+    subj_idx run event_type
     1        1   A            94.317361
                  A           106.547084
                  A           198.175115
@@ -128,7 +128,7 @@ def simulate_fmri_experiment(conditions=None,
                  A            31.323272
     >>> print(params)
                             amplitude
-    subj_idx trial_type
+    subj_idx event_type
     1        A                 1.0
              B                 2.0
 
@@ -171,11 +171,11 @@ def simulate_fmri_experiment(conditions=None,
                 loc=condition['mu_group'], scale=condition['std_group']).rvs()
             condition['amplitude'] = amplitude
             condition['subject'] = subject
-            condition['trial_type'] = condition.name
+            condition['event_type'] = condition.name
             parameters.append(condition.drop(
                 ['mu_group', 'std_group'], axis=0))
 
-    parameters = pd.DataFrame(parameters).set_index(['subject', 'trial_type'])
+    parameters = pd.DataFrame(parameters).set_index(['subject', 'event_type'])
 
     if 'kernel' not in parameters.columns:
         parameters['kernel'] = kernel
@@ -216,7 +216,7 @@ def simulate_fmri_experiment(conditions=None,
                 all_onsets.append(pd.DataFrame({'onset': onsets}))
                 all_onsets[-1]['subject'] = subject
                 all_onsets[-1]['run'] = run
-                all_onsets[-1]['trial_type'] = condition.name
+                all_onsets[-1]['event_type'] = condition.name
 
                 if np.isnan(parameters.loc[(subject, condition.name), 'kernel_pars']):
                     kernel_pars_ = kernel_pars
@@ -248,7 +248,7 @@ def simulate_fmri_experiment(conditions=None,
             data.append(tmp)
 
     data = pd.concat(data).set_index(['subject', 'run', 't'])
-    onsets = pd.concat(all_onsets).set_index(['subject', 'run', 'trial_type'])
+    onsets = pd.concat(all_onsets).set_index(['subject', 'run', 'event_type'])
 
     if n_subjects == 1:
         data.index = data.index.droplevel('subject')
