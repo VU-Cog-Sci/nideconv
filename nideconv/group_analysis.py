@@ -28,6 +28,7 @@ class GroupResponseFitter(object):
 
         self.timeseries = timeseries
         self.onsets = onsets.copy().reset_index()
+
         self.confounds = confounds
 
         self.concatenate_runs = concatenate_runs
@@ -62,6 +63,15 @@ class GroupResponseFitter(object):
         for c in idx_fields:
             if c in self.timeseries.columns:
                 self.index_columns.append(c)
+
+                if self.timeseries[c].dtype != self.onsets[c].dtype:
+                    logging.warning('The dtype of column "{}" is different for '\
+                                    'onsets ({}) and timeseries ({}).\n' \
+                                    'Converting dtype of onsets to {}...'.format(c,
+                                        self.onsets[c].dtype,
+                                        self.timeseries[c].dtype,
+                                        self.timeseries[c].dtype))
+                    self.onsets[c] = self.onsets[c].astype(self.timeseries[c].dtype)
 
         if 'event_type' not in self.onsets:
             if 'condition' in self.onsets:
