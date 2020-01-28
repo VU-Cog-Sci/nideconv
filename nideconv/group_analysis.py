@@ -130,6 +130,9 @@ class GroupResponseFitter(object):
                   add_intercept=True,
                   **kwargs):
 
+        if not hasattr(self, 'events'):
+            self.events = []
+
         if event is None:
             event = self.onsets.index.get_level_values('event_type').unique()
             logging.warning(
@@ -140,6 +143,9 @@ class GroupResponseFitter(object):
 
         if type(covariates) is str:
             covariates = [covariates]
+
+        for e in event:
+            self.events += e
 
         for i, (col, ts) in self._groupby_ts_runs():
             for e in event:
@@ -181,6 +187,7 @@ class GroupResponseFitter(object):
                                                          n_regressors=n_regressors,
                                                          durations=durations,
                                                          covariates=covariate_matrix)
+
 
     def fit(self,
             concatenate_runs=None,
@@ -444,12 +451,31 @@ class GroupResponseFitter(object):
         return ttp
 
 
+    def get_epochs(self, event, interval):
+
+        if hasattr(self, 'events') and (event in self.events):
+            warnings.warn(f'{event} is already in the events list, note that it will be regressed ' \
+                          'out before extracting the epoch!!')
+
+        epochs = []
+        for key, (col, ts) in self._groupby_ts_runs():
+            onsets = self.onsets.loc[(col) + (event,)]
+            e = self.response_fitters[col].get_epochs(onsets['onset'], interval)
+
+            for key, name in zip(col, self.index_columns):
+                e[name] = key
+                e.set_index(name, append=True, inplace=True)
+
+            epochs.append(e.reorder_levels(self.index_columns + ['onset'], axis=0))
+
+        return pd.concat(epochs)
+
 def _make_time_column(df, index_columns, sample_rate):
     t = pd.Series(np.zeros(len(df)), index=df.index)
 
     TR = 1./sample_rate
 
     for ix, d in df.groupby(index_columns):
-        t.loc[ix] = np.arange(0, len(df.loc[ix]) * TR, TR)
+        t.loc[ix] = np.linspace(0, len(df.loc[ix]) * TR, len(d), endpoint=False)
 
     return t
