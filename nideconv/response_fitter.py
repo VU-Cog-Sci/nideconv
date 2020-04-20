@@ -152,7 +152,7 @@ class ResponseFitter(object):
         if type == 'ols':
             n, p = self.X.shape
 
-            self.betas, self.ssquares, self.rank, self.s = \
+            self.betas, self.sse, self.rank, self.s = \
                 np.linalg.lstsq(self.X, self.input_signal, rcond=-1)
             self._send_betas_to_regressors()
 
@@ -160,7 +160,7 @@ class ResponseFitter(object):
                 raise Exception('Design matrix is singular. Consider using less '
                                 'regressors, basis functions, or try ridge regression.')
 
-            self.sigma2 = self.ssquares / (n - (p+1))
+            self.sigma2 = self.sse / (n - (p+1))
             self.sigma2 = pd.Series(
                 self.sigma2, index=self.input_signal.columns)
 
@@ -228,9 +228,9 @@ class ResponseFitter(object):
 
         if store_residuals:
             self._residuals = self.input_signal - self.rcv.predict(self.X)
-            self.ssquares = np.sum(self._residuals**2)
+            self.sse = np.sum(self._residuals**2)
         else:
-            self.ssquares = np.sum(
+            self.sse = np.sum(
                 (self.input_signal - self.rcv.predict(self.X))**2)
 
         self._send_betas_to_regressors()
@@ -354,7 +354,7 @@ class ResponseFitter(object):
         assert hasattr(self, 'betas'), \
             'no betas found, please run regression before rsq'
 
-        rsq = 1 - (self.ssquares /
+        rsq = 1 - (self.sse /
                    ((self.input_signal.values - self.input_signal.mean().values)**2).sum(0))
 
         return pd.DataFrame(rsq[np.newaxis, :], columns=self.input_signal.columns)

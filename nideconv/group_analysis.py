@@ -447,11 +447,26 @@ class GroupResponseFitter(object):
                                 **kwargs)
 
     def get_rsq(self):
-        rsq = pd.concat(self.response_fitters.apply(
-            lambda d: d.get_rsq()).tolist())
-        rsq.index = self.response_fitters.index
+        if self.concatenate_runs:
+            rfs = self.concat_response_fitters
+        else:
+            rfs = self.response_fitters
+
+        rsq = pd.concat(rfs.apply(lambda d: d.get_rsq()).tolist())
+
+        rsq.index = rfs.index
 
         return rsq
+
+    def get_sse(self):
+        if self.concatenate_runs:
+            rfs = self.concat_response_fitters
+        else:
+            rfs = self.response_fitters
+
+        sse = pd.DataFrame([rf.sse for rf in rfs], index=rfs.index, columns=self.timeseries.columns)
+
+        return sse
 
     def get_time_to_peak(self,
                          oversample=1.0,

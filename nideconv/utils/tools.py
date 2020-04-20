@@ -105,3 +105,7 @@ def get_time_to_peak_from_timecourse(tc, cutoff=1., negative_peak=False):
     else:
         peaks = tc.T.apply(_get_peaks, axis=1)
         return pd.concat(peaks.tolist()).T
+
+
+def get_ss(timeseries):
+    return ((timeseries - timeseries.mean(0))**2).sum(0)
