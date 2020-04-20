@@ -194,7 +194,14 @@ class GroupResponseFitter(object):
             type='ols',
             cv=20,
             alphas=None,
-            store_residuals=False):
+            store_residuals=False,
+            progressbar=False):
+
+        if progressbar:
+            from tqdm import tqdm
+            bar = tqdm
+        else:
+            bar = lambda x: x
 
         if concatenate_runs is None:
             concatenate_runs = self.concatenate_runs
@@ -204,17 +211,26 @@ class GroupResponseFitter(object):
                 self.response_fitters.groupby('subject') \
                                      .apply(ConcatenatedResponseFitter)
 
-            for concat_rf in self.concat_response_fitters:
-                concat_rf.fit(type,
-                              cv,
-                              alphas,
-                              store_residuals)
+            for key, concat_rf in bar(self.concat_response_fitters.iteritems()):
+                try:
+                    concat_rf.fit(type,
+                                  cv,
+                                  alphas,
+                                  store_residuals)
+
+                except Exception as e:
+                    print(f'Problem with responsefitter {key}: {e}')
+
         else:
-            for rf in self.response_fitters:
-                rf.fit(type,
-                       cv,
-                       alphas,
-                       store_residuals)
+            for key, rf in bar(self.response_fitters.iteritems()):
+                try:
+                    rf.fit(type,
+                           cv,
+                           alphas,
+                           store_residuals)
+                except Exception as e:
+                    ix = dict(zip(self.index_columns, key))
+                    print(f'Problem with responsefitter {ix}: {e}')
 
     def get_timecourses(self, oversample=None,
                         melt=False,
