@@ -368,7 +368,7 @@ class Event(Regressor):
         L = self.get_basis_function(oversample)
 
         columns = pd.MultiIndex.from_product(([self.name], self.covariates.columns, L.columns),
-                                             names=['event_type', 'covariate', 'regressor'])
+                                             names=['event type', 'covariate', 'regressor'])
 
         oversampled_timepoints = np.linspace(0,
                                              self.fitter.input_signal.shape[0] *
