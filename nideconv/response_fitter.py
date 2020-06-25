@@ -287,7 +287,7 @@ class ResponseFitter(object):
         names = ['event type', 'covariate', 'time']
         row_index = pd.MultiIndex(names=names,
                                   levels=[[], [], []],
-                                  labels=[[], [], []])
+                                  codes=[[], [], []])
 
         bf = pd.DataFrame(columns=self.X.columns, index=row_index)
 
