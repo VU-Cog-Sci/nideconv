@@ -4,7 +4,7 @@ nideconv is a Python module for fast and easy estimating of event-related signal
 # Installation
 Currently, nideconv can be installed using the GitHub repository:
 
-`pip install+https://github.com/VU-Cog-Sci/nideconv`
+`pip install git+https://github.com/VU-Cog-Sci/nideconv`
 
 # Documentation
 
