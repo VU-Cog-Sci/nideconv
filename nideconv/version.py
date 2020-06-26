@@ -4,7 +4,7 @@ from os.path import join as pjoin
 _version_major = 0
 _version_minor = 1
 _version_micro = ''  # use '' for first of series, number for 1 and above
-_version_extra = 'rc4'
+_version_extra = 'rc5'
 # _version_extra = ''  # Uncomment this for full releases
 
 # Construct full version string from these.
@@ -90,4 +90,4 @@ MINOR = _version_minor
 MICRO = _version_micro
 VERSION = __version__
 PACKAGE_DATA = {'nideconv': [pjoin('data', '*')]}
-REQUIRES = ["numpy", "scipy", "sklearn", "pandas", "pymc3", "pystan"]
+REQUIRES = ["cython", "numpy", "scipy", "sklearn", "nilearn", "pandas", "pystan"]

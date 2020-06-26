@@ -1,5 +1,7 @@
+Cython
 numpy
 scipy
 matplotlib
 pandas
 sklearn
+pystan
