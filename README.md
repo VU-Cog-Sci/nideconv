@@ -10,19 +10,24 @@ I highly reccomend to first make a dedicated [Anaconda/Miniconda](https://docs.c
 `conda create --name nideconv`
 
 Then activate that environment
+
 `conda activate nideconv`
 
 Install requirements
+
 `conda create install numpy scikit-learn pystan`
 
 And install nideconv itself
+
 `pip install git+https://github.com/VU-Cog-Sci/nideconv`
 
 ### Install nideconv without  
 It is very important that you have Cython and numpy before you install, so do
+
 `pip install cython numpy`
 
 And then install Nideconv itself
+
 `pip install git+https://github.com/VU-Cog-Sci/nideconv`
 
 # Documentation
