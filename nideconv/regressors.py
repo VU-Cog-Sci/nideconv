@@ -421,7 +421,7 @@ class Event(Regressor):
 
             elif self.basis_set == 'legendre':
                 L = _create_legendre_basis(
-                    self.interval, self.sample_rate, self._regressors, oversample)
+                    self.interval, self.sample_rate, self.n_regressors, oversample)
 
             elif self.basis_set == 'canonical_hrf':
                 L = _create_canonical_hrf_basis(self.interval,
