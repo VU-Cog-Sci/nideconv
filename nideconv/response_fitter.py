@@ -294,9 +294,9 @@ class ResponseFitter(object):
         for event_type, event in self.events.items():
             for covariate in event.covariates.columns:
                 ev = event.get_basis_function(oversample=oversample)
-                ev.index = pd.MultiIndex.from_product([[event_type], [covariate], ev.index.get_values()],
+                ev.index = pd.MultiIndex.from_product([[event_type], [covariate], ev.index],
                                                       names=names)
-                ev.columns = pd.MultiIndex.from_product([[event_type], [covariate], ev.columns.get_values()],
+                ev.columns = pd.MultiIndex.from_product([[event_type], [covariate], ev.columns],
                                                         names=['event type', 'covariate', 'regressor'])
                 bf = pd.concat((bf, ev), axis=0, )
 
