@@ -128,7 +128,7 @@ class GroupResponseFitter(object):
                   n_regressors=None,
                   covariates=None,
                   add_intercept=True,
-                  show_warnings=True
+                  show_warnings=True,
                   **kwargs):
 
         if not hasattr(self, 'events'):
