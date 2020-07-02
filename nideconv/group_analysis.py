@@ -128,6 +128,7 @@ class GroupResponseFitter(object):
                   n_regressors=None,
                   covariates=None,
                   add_intercept=True,
+                  show_warnings=True
                   **kwargs):
 
         if not hasattr(self, 'events'):
@@ -135,7 +136,8 @@ class GroupResponseFitter(object):
 
         if event is None:
             event = self.onsets.index.get_level_values('event_type').unique()
-            logging.warning(
+            if show_warnings:
+                logging.warning(
                 'No event type was given, automatically entering the following event types: %s' % event.tolist())
 
         if type(event) is str:
@@ -154,7 +156,8 @@ class GroupResponseFitter(object):
                     col = (col,)
 
                 if col + (e,) not in self.onsets.index:
-                    warnings.warn('Event %s is not available for run %s. Event is ignored for this '
+                    if show_warnings:
+                        warnings.warn('Event %s is not available for run %s. Event is ignored for this '
                                   'run' % (e, col))
                 else:
 
