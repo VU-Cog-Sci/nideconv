@@ -174,6 +174,10 @@ class ResponseFitter(object):
                     'No support for multidimensional signals yet')
             self.ridge_regress(cv=cv, alphas=alphas,
                                store_residuals=store_residuals)
+        
+        else:
+            raise NotImplementedError(
+                f'No support for "{type}" type of fit (yet)')
 
     def get_standard_errors_timecourse(self, melt=False, oversample=None):
         self._check_fitted()
