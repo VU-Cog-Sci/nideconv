@@ -277,6 +277,42 @@ class GroupResponseFitter(object):
 
         return t
 
+    def t_test(self, event_type1, event_type2, oversample=None):
+
+        """
+        Runs a t-test between two time courses for every , as defined by `event_type1` and `event_type2`
+        and returns a t-value that takes into acount the variance and covariance of the
+        estimates of event_type 1 and 2 via
+
+        SEM = \sqrt{c (X^TX)^{-1}\sigma^2}
+
+        and t = \frac{c'\hat{beta}}{SEM}}
+
+        where c is defined as the weighted sum of regressors describing the time course
+        of `event_type1` minus the weighted sum of regressors describing the time
+        course of `event_type2`.
+
+        Parameters
+        ----------
+        event_type1 : str
+            Should be a valid event type that occurs in the design
+
+        event_type2 : str
+            Should be a valid event type that occurs in the design
+
+        """
+
+        rfs = self._get_response_fitters(None)
+
+        t_ = rfs.apply(lambda rf: rf.t_test(event_type1, event_type2, oversample))
+
+        t = pd.concat(t_.to_dict())
+        index_names = t_.index.names
+        t.index.set_names(index_names, level=range(len(index_names)),
+                          inplace=True)
+
+        return t
+
     def _get_response_fitters(self,
                               concatenate_runs=None):
 

@@ -203,6 +203,47 @@ class ResponseFitter(object):
         t = pd.concat([t], keys=['t'], names=['stat'], axis=1)
         return t
 
+    def t_test(self, event_type1, event_type2, oversample=None):
+
+        """
+        Runs a t-test between two time courses, as defined by `condition 1` and `condition 2`
+        and returns a t-value that takes into acount the variance and covariance of the
+        estimates of condition 1 and 2 via
+
+        SEM = \sqrt{c (X^TX)^{-1}\sigma^2}
+
+        and t = \frac{c'\hat{beta}}{SEM}}
+
+        where c is defined as the weighted sum of regressors describing the time course
+        of `event_type1` minus the weighted sum of regressors describing the time
+        course of `event_type2`.
+
+        Parameters
+        ----------
+        event_type1 : str
+            Should be a valid event type that occurs in the design
+
+        event_type2 : str
+            Should be a valid event type that occurs in the design
+
+        oversample : int
+            At what temporal resolution the resulting timecourses should be oversampled
+
+        """
+        bf = self.get_basis_functions(oversample=oversample)
+        c = bf.loc[event_type1] - bf.loc[event_type2]
+
+        X_ = np.linalg.pinv(self.X.T.dot(self.X))
+        sem = np.sqrt(
+            (c.values.dot(X_) * c).sum(1).values[:, np.newaxis] * self.sigma2[np.newaxis, :])
+
+        c_dot_beta = c.dot(self.betas)
+
+        sem = pd.DataFrame(sem, index=c.index, columns=self.sigma2.index)
+
+        return c_dot_beta / sem
+
+
     def ridge_regress(self, cv=20, alphas=None, store_residuals=False):
         """
         run CV ridge regression instead of ols fit. Uses sklearn's RidgeCV class
