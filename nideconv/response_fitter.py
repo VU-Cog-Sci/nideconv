@@ -547,7 +547,7 @@ class ConcatenatedResponseFitter(ResponseFitter):
 
         for attr in ['sample_rate', 'oversample_design_matrix']:
             check_properties_response_fitters(self.response_fitters, attr)
-            setattr(self, attr, getattr(self.response_fitters[0], attr))
+            setattr(self, attr, getattr(self.response_fitters.iloc[0], attr))
 
         self.input_signal = pd.concat(
             [rf.input_signal for rf in self.response_fitters])

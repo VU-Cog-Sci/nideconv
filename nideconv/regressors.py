@@ -114,12 +114,41 @@ def _create_legendre_basis(interval, sample_rate, n_regressors, oversample=1):
     """"""
 
     regressor_labels = ['legendre_%d' %
-                        poly for poly in np.arange(1, self.n_regressors + 1)]
+                        poly for poly in np.arange(1, n_regressors + 1)]
     x = np.linspace(-1, 1, int(np.diff(interval))
                     * oversample + 1, endpoint=True)
     L_legendre = np.polynomial.legendre.legval(x=x, c=np.eye(n_regressors)).T
 
     return pd.DataFrame(L_legendre,
+                        index=timepoints,
+                        columns=regressor_labels) \
+        .rename_axis('time') \
+        .rename_axis('basis function', axis=1)
+
+
+def _create_dct_basis(interval, sample_rate, n_regressors, oversample=1):
+    """"""
+
+    timepoints = _get_timepoints(interval, sample_rate, oversample)
+
+    L_dct = np.zeros((len(timepoints), n_regressors))
+    
+    len_tim = len(timepoints)    
+    n_times = np.arange(len_tim)
+    
+    nfct = np.sqrt(2.0 / len_tim)
+    
+    L_dct[:, 0] = 1.0
+    
+    regressor_labels = ['dct_intercept'] + [f'dct_{n}' for n in range(1, n_regressors)]
+    
+    for k in range(1, n_regressors):
+        L_dct[:, k] = nfct * np.cos((np.pi / len_tim) * (n_times + 0.5) * k)
+        
+        
+    
+
+    return pd.DataFrame(L_dct,
                         index=timepoints,
                         columns=regressor_labels) \
         .rename_axis('time') \
@@ -275,7 +304,7 @@ class Event(Regressor):
                                                             endpoint=True))
 
         else:
-            if self.basis_set == 'fir':
+            if self.basis_set in ['fir', 'dct']:
                 length_interval = self.interval[1] - self.interval[0]
                 if self.n_regressors is None:
                     self.n_regressors = int(
@@ -284,7 +313,7 @@ class Event(Regressor):
                                   'per covariate' % self.n_regressors)
 
                 if self.n_regressors > (length_interval / self.sample_duration):
-                    warnings.warn('Number of FIR regressors ({}) is larger than the number of timepoints in the interval '
+                    warnings.warn('Number of regressors ({}) is larger than the number of timepoints in the interval '
                                   '({}). '
                                   'This model can only be fit using regularized methods.'.format(self.n_regressors,
                                                                                                  int(length_interval / self.sample_rate)))
@@ -419,6 +448,10 @@ class Event(Regressor):
                 L = _create_fourier_basis(
                     self.interval, self.sample_rate, self.n_regressors, oversample)
 
+            elif self.basis_set == 'dct':
+                L = _create_dct_basis(
+                    self.interval, self.sample_rate, self.n_regressors, oversample)
+
             elif self.basis_set == 'legendre':
                 L = _create_legendre_basis(
                     self.interval, self.sample_rate, self.n_regressors, oversample)
@@ -439,8 +472,6 @@ class Event(Regressor):
                                     'canonical_hrf_time_derivative']
 
         else:
-            regressor_labels = ['custom_basis_function_%d' %
-                                i for i in range(1, self.n_regressors+1)]
             L = np.zeros(
                 (self.basis_set.shape[0] * oversample, self.n_regressors))
 
@@ -448,9 +479,6 @@ class Event(Regressor):
                 self.basis_set.index, self.basis_set.values, axis=0)
             L = interp(timepoints)
 
-        # L = pd.DataFrame(L,
-            # columns=pd.Index(regressor_labels, name='basis_function'),)
-            # index=L.index)
 
         return L
 
