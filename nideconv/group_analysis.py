@@ -97,7 +97,7 @@ class GroupResponseFitter(object):
             self.timeseries.set_index('t', inplace=True, append=True)
 
             self.onsets = self.onsets.set_index(
-                self.index_columns + ['event_type'])
+                self.index_columns + ['event_type']).sort_index()
 
             if self.confounds is not None:
                 self.confounds = self.confounds.set_index(self.index_columns)
