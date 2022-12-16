@@ -88,9 +88,9 @@ class ResponseFitter(object):
         regressor.create_design_matrix(oversample=oversample)
 
         if self.X.shape[1] == 0:
-            self.X = pd.concat((regressor.X, self.X), 1)
+            self.X = pd.concat((regressor.X, self.X), axis=1)
         else:
-            self.X = pd.concat((self.X, regressor.X), 1)
+            self.X = pd.concat((self.X, regressor.X), axis=1)
 
     def add_event(self,
                   event_name,
