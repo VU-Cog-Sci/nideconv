@@ -214,7 +214,7 @@ class GroupResponseFitter(object):
                 self.response_fitters.groupby('subject') \
                                      .apply(ConcatenatedResponseFitter)
 
-            for key, concat_rf in bar(self.concat_response_fitters.iteritems()):
+            for key, concat_rf in bar(self.concat_response_fitters.items()):
                 try:
                     concat_rf.fit(type,
                                   cv,
@@ -225,7 +225,7 @@ class GroupResponseFitter(object):
                     print(f'Problem with responsefitter {key}: {e}')
 
         else:
-            for key, rf in bar(self.response_fitters.iteritems()):
+            for key, rf in bar(self.response_fitters.items()):
                 try:
                     rf.fit(type,
                            cv,
