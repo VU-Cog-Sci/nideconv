@@ -1,4 +1,4 @@
-import pystan
+import stan
 import os
 import pickle as pkl
 import numpy as np
@@ -87,7 +87,7 @@ class HierarchicalStanModel(HierarchicalModel):
             __dir__, 'stan_models', '%s.stan' % fn_string)
 
         if not os.path.exists(stan_model_fn_pkl) or recompile:
-            self.model = pystan.StanModel(file=stan_model_fn_stan)
+            self.model = stan.StanModel(file=stan_model_fn_stan)
 
             with open(stan_model_fn_pkl, 'wb') as f:
                 pkl.dump(self.model, f)
