@@ -84,7 +84,7 @@ class GroupResponseFitter(object):
         index = pd.MultiIndex(names=self.index_columns,
                               levels=[[]]*len(self.index_columns),
                               codes=[[]]*len(self.index_columns),)
-        self.response_fitters = pd.Series(index=index)
+        self.response_fitters = pd.Series(index=index, dtype=object)
 
         if self.index_columns is []:
             raise Exception('GroupDeconvolution is only to be used for datasets with multiple subjects'
