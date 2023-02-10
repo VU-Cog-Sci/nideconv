@@ -147,7 +147,7 @@ class GroupResponseFitter(object):
             covariates = [covariates]
 
         for e in event:
-            self.events += e
+            self.events += [e]
 
         for i, (col, ts) in self._groupby_ts_runs():
             for e in event:
