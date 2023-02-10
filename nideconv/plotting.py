@@ -43,6 +43,7 @@ def plot_timecourses(tc,
                           x='time',
                           hue=hue,
                           y='value',
+                          errorbar='se',
                           # palette=sns.color_palette(),
                           *args,
                           **kwargs)
