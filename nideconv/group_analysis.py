@@ -172,8 +172,7 @@ class GroupResponseFitter(object):
                                                             columns=[
                                                                 'intercept'],
                                                             index=covariate_matrix.index)
-                            covariate_matrix = pd.concat(
-                                (intercept_matrix, covariate_matrix), 1)
+                            covariate_matrix = pd.concat((intercept_matrix, covariate_matrix), axis=1)
 
                     if 'duration' in self.onsets and np.isfinite(self.onsets.loc[[col + (e,)], 'duration']).all():
                         durations = self.onsets.loc[[col + (e,)], 'duration']
