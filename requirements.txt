@@ -4,4 +4,6 @@ scipy
 matplotlib
 pandas
 scikit-learn
-pystan
+nilearn
+seaborn
+pystan; sys_platform != 'win32' or (sys_platform == 'win32' and python_version <= '3.8.16')
