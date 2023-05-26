@@ -3,5 +3,7 @@ numpy
 scipy
 matplotlib
 pandas
-sklearn
-pystan
+scikit-learn
+nilearn
+seaborn
+pystan; sys_platform != 'win32' or (sys_platform == 'win32' and python_version <= '3.8.16')

@@ -21,6 +21,8 @@ And install nideconv itself
 
 `pip install git+https://github.com/VU-Cog-Sci/nideconv`
 
+> Note: Due to the dependency on `pystan` for Bayesian analyses, which is currently not supported for Windows on Python versions >= 3.8.16, you will be able to install `nideconv` on Windows with Python versions > 3.8.16 but *won't* be able to use the Bayesian analysis functionality on higher Python versions (it will throw an error).
+
 ### Install nideconv without Anaconda
 Whatever you do, it is very important that you have Cython and numpy before you install `nideconv`, so maybe do
 
