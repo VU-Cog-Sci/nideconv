@@ -3,5 +3,5 @@ numpy
 scipy
 matplotlib
 pandas
-sklearn
+scikit-learn
 pystan
