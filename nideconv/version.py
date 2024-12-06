@@ -90,4 +90,4 @@ MINOR = _version_minor
 MICRO = _version_micro
 VERSION = __version__
 PACKAGE_DATA = {'nideconv': [pjoin('data', '*')]}
-REQUIRES = ["cython", "numpy", "scipy", "nilearn", "pandas", "pystan", "seaborn"]
+REQUIRES = ["cython", "numpy", "scipy", "nilearn", "pandas", "pystan", "seaborn","pybids"]
