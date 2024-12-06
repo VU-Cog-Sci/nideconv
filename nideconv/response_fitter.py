@@ -91,6 +91,9 @@ class ResponseFitter(object):
             self.X = pd.concat((regressor.X, self.X), axis=1)
         else:
             self.X = pd.concat((self.X, regressor.X), axis=1)
+        
+        # newer pandas versions strip names, add them back
+        self.X.columns.names = regressor.X.columns.names
 
     def add_event(self,
                   event_name,
