@@ -1,6 +1,6 @@
 from .response_fitter import ResponseFitter
 from nilearn._utils import load_niimg
-from nilearn import input_data, image
+from nilearn import maskers, image
 import pandas as pd
 import numpy as np
 import logging
@@ -27,7 +27,7 @@ class NiftiResponseFitter(ResponseFitter):
 
         self.confounds = confounds_for_extraction
 
-        if isinstance(mask, input_data.NiftiMasker):
+        if isinstance(mask, maskers.NiftiMasker):
             self.masker = mask
         else:
 
@@ -36,7 +36,7 @@ class NiftiResponseFitter(ResponseFitter):
                               'make one')
             else:
                 mask = load_niimg(mask)
-            self.masker = input_data.NiftiMasker(mask,
+            self.masker = maskers.NiftiMasker(mask,
                                                  detrend=detrend,
                                                  standardize=standardize,
                                                  memory=memory)
@@ -309,7 +309,7 @@ class GroupNiftiResponseFitter(object):
         if names:
             names = pd.Index(names, name='roi')
 
-        masker = input_data.NiftiMapsMasker(mask, resampling_target=resampling_target)
+        masker = maskers.NiftiMapsMasker(mask, resampling_target=resampling_target)
 
         masker.fit()
 
