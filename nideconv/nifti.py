@@ -254,7 +254,8 @@ class GroupNiftiResponseFitter(object):
         type='ols',
         cv=20,
         alphas=None,
-        keep_timeseries=False
+        keep_timeseries=False,
+        **kwargs
         ):
 
         self.timecourses = pd.DataFrame()
@@ -278,7 +279,8 @@ class GroupNiftiResponseFitter(object):
                 add_intercept=self.add_intercept,
                 detrend=self.detrend,
                 standardize=self.standardize,
-                memory=self.memory
+                memory=self.memory,
+                **kwargs
             )
 
 
