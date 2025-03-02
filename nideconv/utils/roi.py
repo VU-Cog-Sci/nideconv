@@ -1,20 +1,20 @@
 import pandas as pd
-from nilearn import input_data
-import nibabel as nb
+from nilearn import maskers
 from nilearn._utils import check_niimg
 from nilearn import image
 import numpy as np
 
-def extract_timecourse_from_nii(atlas,
-                                nii,
-                                mask=None,
-                                confounds=None,
-                                atlas_type=None,
-                                t_r=None,
-                                low_pass=None,
-                                high_pass=1./128,
-                                *args,
-                                **kwargs):
+def extract_timecourse_from_nii(
+    atlas,
+    nii,
+    mask=None,
+    confounds=None,
+    atlas_type=None,
+    t_r=None,
+    low_pass=None,
+    high_pass=1./128,
+    *args,
+    **kwargs):
     """
     Extract time courses from a 4D `nii`, one for each label 
     or map in `atlas`,
@@ -97,28 +97,25 @@ def extract_timecourse_from_nii(atlas,
             atlas_type = 'prob'
 
     if atlas_type == 'labels':
-        masker = input_data.NiftiLabelsMasker(atlas.maps,
-                                              mask_img=mask,
-                                              standardize=standardize,
-                                              detrend=detrend,
-                                              t_r=t_r,
-                                              low_pass=low_pass,
-                                              high_pass=high_pass,
-                                              *args, **kwargs)
+        ffunc = maskers.NiftiLabelsMasker
     else:
-        masker = input_data.NiftiMapsMasker(atlas.maps,
-                                            mask_img=mask,
-                                            standardize=standardize,
-                                            detrend=detrend,
-                                            t_r=t_r,
-                                            low_pass=low_pass,
-                                            high_pass=high_pass,
-                                            *args, **kwargs)
+        ffunc = maskers.NiftiMapsMasker
+
+    masker = ffunc(
+        atlas.maps,
+        mask_img=mask,
+        standardize=standardize,
+        detrend=detrend,
+        t_r=t_r,
+        low_pass=low_pass,
+        high_pass=high_pass,
+        *args,
+        **kwargs
+    )
 
     data = _make_psc(nii)
 
-    results = masker.fit_transform(data,
-                                   confounds=confounds)
+    results = masker.fit_transform(data, confounds=confounds)
 
     # For weird atlases that have a label for the background
     if len(atlas.labels) == results.shape[1] + 1:
@@ -141,8 +138,8 @@ def extract_timecourse_from_nii(atlas,
 
 
 def get_fmriprep_timeseries(fmriprep_folder,
-                            sourcedata_folder,
                             atlas,
+                            t_r=None,
                             atlas_type=None,
                             low_pass=None,
                             high_pass=1./128,
@@ -162,9 +159,6 @@ def get_fmriprep_timeseries(fmriprep_folder,
 
     fmriprep_folder: string  
         Path to the folder that contains fmriprep'ed functional MRI data.
-
-    sourcedata_folder: string
-        Path to BIDS folder that has been used as input for fmriprep
 
     atlas: sklearn.datasets.base.Bunch  
         This Bunch should contain at least a `maps`-attribute
@@ -221,27 +215,39 @@ def get_fmriprep_timeseries(fmriprep_folder,
     """
 
     if confounds_to_include is None:
-        confounds_to_include = ['FramewiseDisplacement', 'aCompCor00',
-                                'aCompCor01', 'aCompCor02', 'aCompCor03',
-                                'aCompCor04', 'aCompCor05', 'X', 'Y', 'Z',
-                                'RotX', 'RotY', 'RotZ']
+        confounds_to_include = [
+            'framewise_displacement',
+            'a_comp_cor_00',
+            'a_comp_cor_01',
+            'a_comp_cor_02',
+            'a_comp_cor_03',
+            'a_comp_cor_04',
+            'a_comp_cor_05',
+            'trans_x',
+            'trans_y',
+            'trans_y',
+            'rot_x',
+            'rot_y',
+            'rot_z'
+        ]
 
     index_keys = []
     timecourses = []
 
-    for func, confounds, meta in _get_func_and_confounds(fmriprep_folder,
-                                                         sourcedata_folder):
+    for func, confounds in _get_func_and_confounds(fmriprep_folder, **kwargs):
 
-        print("Extracting signal from {}...".format(func.filename))
-        confounds = pd.read_table(confounds.filename).fillna(method='bfill')
+        print(f"Extracting signal from {func.filename}...")
+        conf = pd.read_csv(confounds.path, sep="\t").bfill()
 
-        tc = extract_timecourse_from_nii(atlas,
-                                         func.filename,
-                                         t_r=meta['RepetitionTime'],
-                                         atlas_type=atlas_type,
-                                         low_pass=low_pass,
-                                         high_pass=high_pass,
-                                         confounds=confounds[confounds_to_include].values)
+        tc = extract_timecourse_from_nii(
+            atlas,
+            func.path,
+            t_r=t_r,
+            atlas_type=atlas_type,
+            low_pass=low_pass,
+            high_pass=high_pass,
+            confounds=conf[confounds_to_include].values
+        )
 
         for key in ['subject', 'task', 'run', 'session']:
             if hasattr(func, key):
@@ -262,7 +268,7 @@ def _make_psc(data):
     mean_img = image.mean_img(data)
 
     # Replace 0s for numerical reasons
-    mean_data = mean_img.get_data()
+    mean_data = mean_img.get_fdata()
     mean_data[mean_data == 0] = 1
     denom = image.new_img_like(mean_img, mean_data)
 
@@ -270,35 +276,24 @@ def _make_psc(data):
                           data=data, denom=denom)
 
 
-def _get_func_and_confounds(fmriprep_folder,
-                            sourcedata_folder):
+def _get_func_and_confounds(fmriprep_folder, **kwargs):
 
     from bids import BIDSLayout
-    fmriprep_layout = BIDSLayout(fmriprep_folder)
-    sourcedata_layout = BIDSLayout(sourcedata_folder)
+    fmriprep_layout = BIDSLayout(fmriprep_folder, **kwargs)
 
-    files = fmriprep_layout.get(extensions=['.nii', 'nii.gz'],
-                                modality='func', suffix='preproc')
+    files = fmriprep_layout.get(suffix='bold', extension=['nii', 'nii.gz'])
 
     confounds = []
-    metadata = []
 
     for f in files:
         kwargs = {}
 
         for key in ['subject', 'run', 'task', 'session']:
-            if hasattr(f, key):
-                kwargs[key] = getattr(f, key)
+            if key in list(f.entities.keys()):
+                kwargs[key] = f.entities[key]
 
-        c = fmriprep_layout.get(suffix='confounds', **kwargs)
+        c = fmriprep_layout.get(suffix="timeseries", **kwargs)
         c = c[0]
         confounds.append(c)
 
-        sourcedata_file = sourcedata_layout.get(
-            modality='func', extensions='nii.gz', **kwargs)
-
-        assert(len(sourcedata_file) == 1)
-        md = sourcedata_layout.get_metadata(sourcedata_file[0].filename)
-        metadata.append(md)
-
-    return list(zip(files, confounds, metadata))
+    return list(zip(files, confounds))
