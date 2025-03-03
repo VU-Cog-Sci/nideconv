@@ -224,11 +224,12 @@ def simulate_fmri_experiment(conditions=None,
                     kernel_pars_ = parameters.loc[(
                         subject, condition.name), 'kernel_pars']
 
-                signals[i] = convolve_with_function(signals[i],
-                                                    parameters.loc[(
-                                                        subject, condition.name), 'kernel'],
-                                                    sample_rate,
-                                                    **kernel_pars_)
+                signals[i] = convolve_with_function(
+                    signals[i],
+                    parameters.loc[(subject, condition.name), 'kernel'],
+                    sample_rate,
+                    **kernel_pars_
+                )
 
             signal = signals.sum(0)
             signal = np.repeat(signal[:, np.newaxis], n_rois, 1)
@@ -237,7 +238,7 @@ def simulate_fmri_experiment(conditions=None,
             if n_rois == 1:
                 columns = ['signal']
             else:
-                columns = ['area %d' % i for i in range(1, n_rois + 1)]
+                columns = [f'area {d}' for d in range(1, n_rois + 1)]
 
             tmp = pd.DataFrame(signal,
                                columns=columns)
