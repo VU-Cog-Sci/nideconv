@@ -455,8 +455,11 @@ class ResponseFitter:
 
         onsets = np.array(onsets)
 
-        indices = np.array([signal.index.get_loc(onset, method='nearest')
-                            for onset in onsets + interval[0]])
+        indices = np.array([
+            signal.index.get_indexer([onset + interval[0]], method='nearest')[0]
+            for onset in onsets
+        ])
+
 
         interval_duration = interval[1] - interval[0]
         interval_n_samples = int(interval_duration * self.sample_rate) + 1
@@ -484,7 +487,8 @@ class ResponseFitter:
 
         # Get rid of incomplete epochs:
         if remove_incomplete_epochs:
-            epochs = epochs[~epochs.isnull().any(1)]
+            epochs = epochs[~epochs.isnull().any(axis=1)]
+
         return epochs
 
     def get_time_to_peak(self,
@@ -512,7 +516,7 @@ class ResponseFitter:
         if melt:
             return self.input_signal.reset_index()\
                                     .melt(var_name='roi',
-                                          value_name='signal',
+                                          value_name='signals',
                                           id_vars='time')
         else:
             return self.input_signal
@@ -541,7 +545,7 @@ class ResponseFitter:
                             col_wrap=col_wrap,
                             aspect=3)
 
-        fac.map(plt.plot, 'time', 'signal', color='k', label='signal')
+        fac.map(plt.plot, 'time', 'signals', color='k', label='signal')
         fac.map(plt.plot, 'time', 'prediction', color='r',
                 ls='--', lw=3, label='prediction')
 
