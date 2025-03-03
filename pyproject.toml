@@ -8,9 +8,9 @@ description = "A Python module for fast and easy estimating of event-related sig
 authors = [
     { name = "Gilles de Hollander", email = "gilles.de.hollander@gmail.com" },
 ]
-license = { text = "MIT" }
 dynamic = ["version"]
 readme = "README.md"
+license = { file = "LICENSE" }
 requires-python = ">=3.7"
 dependencies = [
     "Cython",
