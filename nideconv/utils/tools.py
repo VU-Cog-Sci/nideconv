@@ -1,5 +1,5 @@
 import numpy as np
-from scipy import signal
+import scipy as sp
 import pandas as pd
 
 def get_proper_interval(interval, sample_duration):
@@ -50,7 +50,7 @@ def convolve_with_function(
     
     f = kernel(t, *args, **kwargs)
     
-    output_signal = signal.decimate(signal.convolve(np.repeat(input, oversample) / oversample, f, 'full')[:input.shape[0]*oversample], oversample)
+    output_signal = sp.signal.decimate(sp.signal.convolve(np.repeat(input, oversample) / oversample, f, 'full')[:input.shape[0]*oversample], oversample)
     
     return output_signal
 
@@ -94,8 +94,8 @@ def double_gamma_with_d_time_derivative(
 
 def _get_peaks(col, cutoff=1.0):
     
-    peaks, _ = signal.find_peaks(col)
-    prominence, _, _ = signal.peak_prominences(col, peaks)
+    peaks, _ = sp.signal.find_peaks(col)
+    prominence, _, _ = sp.signal.peak_prominences(col, peaks)
     
     r = pd.DataFrame(
         {
