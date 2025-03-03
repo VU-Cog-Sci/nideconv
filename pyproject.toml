@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools", "setuptools_scm", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nideconv"
+description = "A Python module for fast and easy estimating of event-related signals."
+authors = [
+    { name = "Gilles de Hollander", email = "gilles.de.hollander@gmail.com" },
+]
+license = { text = "MIT" }
+dynamic = ["version"]
+readme = "README.md"
+requires-python = ">=3.7"
+dependencies = [
+    "Cython",
+    "numpy",
+    "scipy",
+    "matplotlib",
+    "pandas",
+    "scikit-learn",
+    "nilearn",
+    "seaborn",
+    "pystan; sys_platform != 'win32' or (sys_platform == 'win32' and python_version <= '3.8.16')",
+]
+
+[project.urls]
+Homepage = "https://github.com/VU-Cog-Sci/nideconv"
+Documentation = "http://nideconv.readthedocs.io/en/latest/"
+
+[project.optional-dependencies]
+dev = ["pytest", "black", "flake8"]
+
+[tool.setuptools_scm]
+write_to = "nideconv/version.py"
+
+[tool.setuptools.packages.find]
+include = ["nideconv*"]
+
+[tool.setuptools.package-data]
+nideconv = ["version.py"]
