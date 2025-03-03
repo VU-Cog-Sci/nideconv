@@ -25,12 +25,15 @@ def resample_and_zscore(s, old_samplerate=1000, target_samplerate=20):
     s /= s.std()
     return s, new_samplerate
 
-def convolve_with_function(input,
-                           kernel,
-                           signal_samplerate,
-                           interval=(0, 20),
-                           oversample=20,
-                           *args, **kwargs):
+def convolve_with_function(
+    input,
+    kernel,
+    signal_samplerate,
+    interval=(0, 20),
+    oversample=20,
+    *args,
+    **kwargs
+    ):
     
     if (kernel == 'double_hrf') or (kernel == 'double_gamma'):
         kernel = double_gamma_with_d
@@ -52,7 +55,16 @@ def convolve_with_function(input,
     return output_signal
 
     
-def double_gamma_with_d(x, a1=6, a2=12, b1=0.9, b2=0.9, c=0.35, d1=5.4, d2=10.8):    
+def double_gamma_with_d(
+    x, 
+    a1=6, 
+    a2=12, 
+    b1=0.9, 
+    b2=0.9, 
+    c=0.35, 
+    d1=5.4, 
+    d2=10.8):    
+
     y = (x/(d1))**a1 * np.exp(-(x-d1)/b1) - c*(x/(d2))**a2 * np.exp(-(x-d2)/b2)
     y[x < 0] = 0
     y /= y.max()
@@ -64,35 +76,43 @@ def gamma(x, a1=6, b1=0.9, d1=5.4):
     y /= y.max()
     return y
 
-def double_gamma_with_d_time_derivative(x,
-                                    a1=6,
-                                    a2=12,
-                                    b1=0.9,
-                                    b2=0.9,
-                                    c=0.35,
-                                    d1=5.4,
-                                    d2=10.8,
-                                    dt=0.1):
+def double_gamma_with_d_time_derivative(
+    x,
+    a1=6,
+    a2=12,
+    b1=0.9,
+    b2=0.9,
+    c=0.35,
+    d1=5.4,
+    d2=10.8,
+    dt=0.1
+    ):
 
     dhrf = 1. / dt * (double_gamma_with_d(x + dt, a1, a2, b1, b2, c, d1, d2) -
                       double_gamma_with_d(x, a1, a2, b1, b2, c, d1, d2))
     return dhrf
-
 
 def _get_peaks(col, cutoff=1.0):
     
     peaks, _ = signal.find_peaks(col)
     prominence, _, _ = signal.peak_prominences(col, peaks)
     
-    r = pd.DataFrame({'prominence':prominence,
-                      'time peak':col.index.get_level_values(level='time')[peaks]},
-                       index=[col.name]*len(peaks))
+    r = pd.DataFrame(
+        {
+            'prominence':prominence,
+            'time peak':col.index.get_level_values(level='time')[peaks]
+        },
+        index=[col.name]*len(peaks))
     
     r = r[r.prominence >= cutoff * r.prominence.max()].sort_values('prominence', ascending=False)
     if len(r) == 0:
-        return pd.DataFrame({'prominence':[np.nan],
-                             'time peak':[np.nan]},
-                            index=[col.name])
+        return pd.DataFrame(
+            {
+                'prominence':[np.nan],
+                'time peak':[np.nan]
+            },
+            index=[col.name]
+        )
 
     return r
 

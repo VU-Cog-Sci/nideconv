@@ -1,57 +1,80 @@
-from .regressors import Event, Confound, Intercept
+from .regressors import (
+    Event,
+    Confound,
+    Intercept
+)
 import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn import linear_model
-import scipy as sp
 from .plotting import plot_timecourses, plot_design_matrix
 from .utils import get_time_to_peak_from_timecourse
 
 
-class ResponseFitter(object):
-    """ResponseFitter takes an input signal and performs deconvolution on it.
-    To do this, it requires event times, and possible covariates.
-    ResponseFitter can, for each event type, use different basis function sets,
-    see Event."""
+class ResponseFitter:
+    """
+    ResponseFitter performs deconvolution on an input signal using event times
+    and optionally covariates. Each event type can use different basis function
+    sets, configurable via `Event` objects.
+    """
 
-    def __init__(self,
-                 input_signal,
-                 sample_rate,
-                 oversample_design_matrix=20,
-                 add_intercept=True, **kwargs):
-        """ Initialize a ResponseFitter object.
+    def __init__(
+        self,
+        input_signal,
+        sample_rate,
+        oversample_design_matrix=20,
+        add_intercept=True,
+        **kwargs
+        ):
+        """
+        Initialize a ResponseFitter object.
 
         Parameters
         ----------
-        input_signal : numpy array, dimensions preferably (X, n)
-            input data, of X timeseries of n timepoints
-            sampled at the frequency at which we would
-            like to conduct this analysis
+        input_signal : np.ndarray or pd.DataFrame
+            Input data of shape (n_timepoints, n_signals).
+            This represents the signals to be deconvolved, sampled at the
+            frequency specified by `sample_rate`.
 
         sample_rate : float
-            frequency in Hz at which input data are sampled
+            Sampling frequency in Hz of the input data.
+
+        oversample_design_matrix : int, optional
+            Factor by which to oversample the design matrix (default = 20).
+
+        add_intercept : bool, optional
+            Whether to add an intercept regressor by default (default = True).
 
         **kwargs : dict
-            keyward arguments to be internalized by the ResponseFitter object
+            Additional attributes to be stored in the ResponseFitter object.
         """
-        super(ResponseFitter, self).__init__()
-        self.__dict__.update(kwargs)
+        self.input_signal = input_signal
+        self.sample_rate = sample_rate
+        self.oversample_design_matrix = oversample_design_matrix
+
+        # Store any other passed keyword arguments as object attributes
+        for key, value in kwargs.items():
+            setattr(self, key, value)
 
         self.sample_rate = sample_rate
         self.sample_duration = 1.0/self.sample_rate
 
         self.oversample_design_matrix = oversample_design_matrix
 
-        self.input_signal_time_points = np.linspace(0,
-                                                    input_signal.shape[0] *
-                                                    self.sample_duration,
-                                                    input_signal.shape[0],
-                                                    endpoint=False)
+        self.input_signal_time_points = np.linspace(
+            0,
+            input_signal.shape[0] *
+            self.sample_duration,
+            input_signal.shape[0],
+            endpoint=False
+        )
 
         self.input_signal = pd.DataFrame(input_signal)
-        self.input_signal.index = pd.Index(self.input_signal_time_points,
-                                           name='time')
+        self.input_signal.index = pd.Index(
+            self.input_signal_time_points,
+            name='time'
+        )
 
         self.X = pd.DataFrame(index=self.input_signal.index)
 
@@ -86,22 +109,24 @@ class ResponseFitter(object):
         regressor.create_design_matrix(oversample=oversample)
 
         if self.X.shape[1] == 0:
-            self.X = pd.concat((regressor.X, self.X), axis=1)
+            self.X_list = [regressor.X, self.X]
         else:
-            self.X = pd.concat((self.X, regressor.X), axis=1)
-        
-        # newer pandas versions strip names, add them back
+            self.X_list = [self.X, regressor.X]
+
+        self.X = pd.concat(self.X_list, axis=1)
         self.X.columns.names = regressor.X.columns.names
 
-    def add_event(self,
-                  event_name,
-                  onsets=None,
-                  basis_set='fir',
-                  interval=[0, 10],
-                  n_regressors=None,
-                  durations=None,
-                  covariates=None,
-                  **kwargs):
+    def add_event(
+        self,
+        event_name,
+        onsets=None,
+        basis_set='fir',
+        interval=[0, 10],
+        n_regressors=None,
+        durations=None,
+        covariates=None,
+        **kwargs):
+
         """
         create design matrix for a given event_type.
 
@@ -120,17 +145,19 @@ class ResponseFitter(object):
         """
 
         assert event_name not in self.X.columns.get_level_values(
-            0), "The event_name %s is already in use" % event_name
+            0), f"The event_name {event_name} is already in use"
 
-        ev = Event(name=event_name,
-                   onsets=onsets,
-                   basis_set=basis_set,
-                   interval=interval,
-                   n_regressors=n_regressors,
-                   durations=durations,
-                   covariates=covariates,
-                   fitter=self,
-                   **kwargs)
+        ev = Event(
+            name=event_name,
+            onsets=onsets,
+            basis_set=basis_set,
+            interval=interval,
+            n_regressors=n_regressors,
+            durations=durations,
+            covariates=covariates,
+            fitter=self,
+            **kwargs
+        )
 
         self._add_regressor(ev)
 
@@ -369,23 +396,26 @@ class ResponseFitter(object):
 
         return timecourses
 
-    def plot_timecourses(self,
-                         oversample=None,
-                         legend=True,
-                         *args,
-                         **kwargs):
+    def plot_timecourses(
+        self,
+        oversample=None,
+        legend=True,
+        *args,
+        **kwargs):
 
         if oversample is None:
             oversample = 1
 
-        tc = self.get_timecourses(melt=True,
-                                  oversample=oversample)
+        tc = self.get_timecourses(melt=True, oversample=oversample)
         tc['subject'] = 'dummy'
 
-        return plot_timecourses(tc,
-                                oversample=oversample,
-                                legend=legend,
-                                *args, **kwargs)
+        return plot_timecourses(
+            tc,
+            oversample=oversample,
+            legend=legend,
+            *args,
+            **kwargs
+        )
 
     def get_rsq(self):
         """
@@ -440,8 +470,7 @@ class ResponseFitter(object):
         # Make dummy element to fill epochs with nans if they fall out of the timeseries
         signal = pd.concat((signal, pd.DataFrame(np.zeros((1, signal.shape[1])) * np.nan,
                                                  columns=signal.columns,
-                                                 index=[np.nan])),
-                           0)
+                                                 index=[np.nan])), axis=0)
 
         # Calculate epochs
         epochs = signal.values[indices].swapaxes(-1, -2)

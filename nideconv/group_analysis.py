@@ -15,15 +15,17 @@ class GroupResponseFitter(object):
     runs using a high-level interface.
     """
 
-    def __init__(self,
-                 timeseries,
-                 onsets,
-                 input_sample_rate,
-                 oversample_design_matrix=20,
-                 confounds=None,
-                 concatenate_runs=True,
-                 *args,
-                 **kwargs):
+    def __init__(
+        self,
+        timeseries,
+        onsets,
+        input_sample_rate,
+        oversample_design_matrix=20,
+        confounds=None,
+        concatenate_runs=True,
+        *args,
+        **kwargs
+        ):
 
         timeseries = pd.DataFrame(timeseries.copy())
 
@@ -121,15 +123,30 @@ class GroupResponseFitter(object):
                     self.response_fitters.loc[idx].add_confounds(
                         'confounds', self.confounds.loc[idx])
 
-    def add_event(self,
-                  event=None,
-                  basis_set='fir',
-                  interval=[0, 10],
-                  n_regressors=None,
-                  covariates=None,
-                  add_intercept=True,
-                  show_warnings=True,
-                  **kwargs):
+    def add_event(
+        self,
+        event=None,
+        basis_set='fir',
+        interval=[0, 10],
+        n_regressors=None,
+        covariates=None,
+        add_intercept=True,
+        show_warnings=True,
+        **kwargs
+        ):
+
+        self.allowed_basissets = [
+            "fir",
+            "fourier",
+            "dct",
+            "legendre",
+            "canonical_hrf",
+            "canonical_hrf_with_time_derivative",
+            "canonical_hrf_with_time_derivative_dispersion",
+        ]
+
+        if basis_set not in self.allowed_basissets:
+            raise ValueError(f"Requested basis set '{basis_set}' not available. Must be one of {self.allowed_basissets}")
 
         if not hasattr(self, 'events'):
             self.events = []
@@ -140,10 +157,10 @@ class GroupResponseFitter(object):
                 logging.warning(
                 'No event type was given, automatically entering the following event types: %s' % event.tolist())
 
-        if type(event) is str:
+        if isinstance(event, str):
             event = [event]
 
-        if type(covariates) is str:
+        if isinstance(covariates, str):
             covariates = [covariates]
 
         for e in event:
@@ -157,8 +174,9 @@ class GroupResponseFitter(object):
 
                 if col + (e,) not in self.onsets.index:
                     if show_warnings:
-                        warnings.warn('Event %s is not available for run %s. Event is ignored for this '
-                                  'run' % (e, col))
+                        warnings.warn(
+                            f'Event {e} is not available for run {col}. Event is ignored for this run'
+                        )
                 else:
 
                     if covariates is None:
@@ -168,10 +186,11 @@ class GroupResponseFitter(object):
                             col + (e,)], covariates]
 
                         if add_intercept:
-                            intercept_matrix = pd.DataFrame(np.ones((len(covariate_matrix), 1)),
-                                                            columns=[
-                                                                'intercept'],
-                                                            index=covariate_matrix.index)
+                            intercept_matrix = pd.DataFrame(
+                                np.ones((len(covariate_matrix), 1)),
+                                columns=['intercept'],
+                                index=covariate_matrix.index
+                            )
                             covariate_matrix = pd.concat((intercept_matrix, covariate_matrix), axis=1)
 
                     if 'duration' in self.onsets and np.isfinite(self.onsets.loc[[col + (e,)], 'duration']).all():
@@ -181,23 +200,26 @@ class GroupResponseFitter(object):
 
                     # print(e, self.onsets.loc[[col + (e,)], 'onset'].shape, durations.sha[p)
 
-                    self.response_fitters[col].add_event(e,
-                                                         onsets=self.onsets.loc[[
-                                                             col + (e,)], 'onset'],
-                                                         basis_set=basis_set,
-                                                         interval=interval,
-                                                         n_regressors=n_regressors,
-                                                         durations=durations,
-                                                         covariates=covariate_matrix)
+                    self.response_fitters[col].add_event(
+                        e,
+                        onsets=self.onsets.loc[[col + (e,)], 'onset'],
+                        basis_set=basis_set,
+                        interval=interval,
+                        n_regressors=n_regressors,
+                        durations=durations,
+                        covariates=covariate_matrix
+                    )
 
 
-    def fit(self,
-            concatenate_runs=None,
-            type='ols',
-            cv=20,
-            alphas=None,
-            store_residuals=False,
-            progressbar=False):
+    def fit(
+        self,
+        concatenate_runs=None,
+        type='ols',
+        cv=20,
+        alphas=None,
+        store_residuals=False,
+        progressbar=False
+        ):
 
         if progressbar:
             from tqdm import tqdm
