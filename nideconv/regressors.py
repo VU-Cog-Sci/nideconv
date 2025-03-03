@@ -7,7 +7,6 @@ response
 
 import numpy as np
 import scipy as sp
-from scipy import signal, interpolate
 import pandas as pd
 import warnings
 from .utils import (
@@ -51,7 +50,7 @@ def _create_fir_basis(interval, sample_rate, n_regressors, oversample=1):
 
     timepoints = _get_timepoints(interval, sample_rate, oversample)
 
-    fir = interpolate.interp1d(
+    fir = sp.interpolate.interp1d(
         orig_timepoints,
         basis,
         kind='nearest',
