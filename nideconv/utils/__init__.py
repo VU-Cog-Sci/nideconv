@@ -5,7 +5,6 @@ from .tools import (
     gamma,
     double_gamma_with_d,
     double_gamma_with_d_time_derivative,
-    double_gamma_with_d_time_derivative_dispersion, 
     get_time_to_peak_from_timecourse,
     get_ss)
 
