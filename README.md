@@ -13,7 +13,7 @@ Researchers may overlook essential patterns in their data when blindly running G
 # Installation
 Currently, nideconv can be installed using the GitHub repository:
 
-### Make Conda environment (optional but highly recomended, especially for Windows)
+## Make Conda environment (optional but highly recomended, especially for Windows)
 I highly recommend to first make a dedicated [Anaconda/Miniconda](https://docs.conda.io/en/latest/miniconda.html)-environment:
 
 `conda create --name nideconv`
@@ -27,6 +27,13 @@ Install nideconv
 `pip install git+https://github.com/VU-Cog-Sci/nideconv`
 
 > Note: Due to the dependency on `pystan` for Bayesian analyses, which is currently not supported for Windows on Python versions >= 3.8.16, you will be able to install `nideconv` on Windows with Python versions > 3.8.16 but *won't* be able to use the Bayesian analysis functionality on higher Python versions (it will throw an error).
+
+## Enable hierarchical modeling
+By default, `pystan` is an optional dependency to avoid compatibility issues. To install it, run:
+
+```bash
+pip install nideconv[stan]
+```
 
 # Documentation
 

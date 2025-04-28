@@ -1,4 +1,8 @@
-import stan
+try:
+    import stan
+except ImportError:
+    pystan = None
+
 import os
 import pickle as pkl
 import numpy as np
@@ -64,7 +68,10 @@ class HierarchicalModel(object):
 class HierarchicalStanModel(HierarchicalModel):
 
     def __init__(self, X, subject_ids, subjectwise_errors=False, cauchy_priors=False, recompile=False, model_code=None):
-
+        
+        if pystan is None:
+            raise ImportError("This feature requres pystan. Please install with 'pip install nideconv[stan]'")
+    
         super(HierarchicalStanModel, self).__init__(
             X, subject_ids, subjectwise_errors)
 

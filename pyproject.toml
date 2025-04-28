@@ -20,8 +20,7 @@ dependencies = [
     "pandas",
     "scikit-learn",
     "nilearn",
-    "seaborn",
-    "pystan; sys_platform != 'win32' or (sys_platform == 'win32' and python_version <= '3.8.16')",
+    "seaborn", 
 ]
 
 [project.urls]
@@ -30,6 +29,7 @@ Documentation = "http://nideconv.readthedocs.io/en/latest/"
 
 [project.optional-dependencies]
 dev = ["pytest", "black", "flake8"]
+stan = ["pystan; sys_platform != 'win32' or (sys_platform == 'win32' and python_version <= '3.8.16')"]
 
 [tool.setuptools_scm]
 write_to = "nideconv/version.py"
