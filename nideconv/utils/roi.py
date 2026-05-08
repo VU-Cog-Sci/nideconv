@@ -1,8 +1,16 @@
-import pandas as pd
-from nilearn import maskers
-from nilearn._utils import check_niimg
-from nilearn import image
 import numpy as np
+import pandas as pd
+from nilearn import image, maskers
+
+try:
+    from nilearn.image import check_niimg
+except ImportError as exc:
+    try:
+        from nilearn._utils import check_niimg
+    except ImportError:
+        raise ImportError(
+            "Incompatible nilearn version: check_niimg not found."
+        ) from exc
 
 def extract_timecourse_from_nii(
     atlas,
