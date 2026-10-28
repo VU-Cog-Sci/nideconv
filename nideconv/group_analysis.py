@@ -357,8 +357,15 @@ class GroupResponseFitter(object):
                                     melt=False):
 
         tc = self.get_timecourses(oversample=oversample)
-        tc = tc.reset_index().groupby(
-            ['subject', 'event type', 'covariate', 'time', ]).mean()
+
+        group_columns = ['subject', 'event type', 'covariate', 'time']
+        signal_columns = tc.columns.tolist()
+
+        tc = (
+            tc.reset_index()
+            .groupby(group_columns)[signal_columns]
+            .mean()
+        )
 
         for c in self.index_columns:
             if c in tc.columns:
