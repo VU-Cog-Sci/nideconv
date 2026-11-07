@@ -182,24 +182,22 @@ def _create_legendre_basis(interval, sample_rate, n_regressors, oversample=1):
 
 
 def _create_dct_basis(interval, sample_rate, n_regressors, oversample=1):
-    """"""
+    """Discrete cosine basis over the interval (DCT-II at the data's sample rate).
+
+    The cosines are defined in continuous time, so an oversampled basis passes through the same values
+    at the original sample times and has the same amplitude: timecourses read out with ``oversample > 1``
+    have the same scale as those at the data's sample rate."""
 
     timepoints = _get_timepoints(interval, sample_rate, oversample)
+    n_samples = int((interval[1] - interval[0]) * sample_rate)   # samples at the data's rate
+    dt = 1. / sample_rate
+    u = (timepoints - interval[0] + dt / 2.) / (n_samples * dt)   # (n + 0.5) / N at the original samples
 
-    L_dct = np.zeros((len(timepoints), n_regressors))
-    
-    len_tim = len(timepoints)    
-    n_times = np.arange(len_tim)
-    
-    nfct = np.sqrt(2.0 / len_tim)
-    
-    # L_dct[:, 0] = 1.0
-    
-    # regressor_labels = ['dct_intercept'] + [f'dct_{n}' for n in range(1, n_regressors)]
+    nfct = np.sqrt(2.0 / n_samples)
     regressor_labels = [f'dct_{n}' for n in range(0, n_regressors)]
-    
+    L_dct = np.zeros((len(timepoints), n_regressors))
     for k in range(0, n_regressors):
-        L_dct[:, k] = nfct * np.cos((np.pi / len_tim) * (n_times + 0.5) * k)
+        L_dct[:, k] = nfct * np.cos(np.pi * u * k)
 
     return pd.DataFrame(
         L_dct,
